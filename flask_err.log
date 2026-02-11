@@ -1,0 +1,8 @@
+2026-02-09 19:16:52,778 INFO nsn_app NSN Intelligence Suite starting on http://127.0.0.1:5000
+2026-02-09 19:16:52,794 INFO werkzeug [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-02-09 19:16:52,794 INFO werkzeug [33mPress CTRL+C to quit[0m
+2026-02-09 19:16:52,795 INFO werkzeug  * Restarting with stat
+2026-02-09 19:16:52,970 INFO nsn_app NSN Intelligence Suite starting on http://127.0.0.1:5000
+2026-02-09 19:16:52,978 WARNING werkzeug  * Debugger is active!
+2026-02-09 19:16:52,979 INFO werkzeug  * Debugger PIN: 274-159-087
