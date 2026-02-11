@@ -1,0 +1,2229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NSN Intelligence Suite</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<style>
+:root{--bg:#0f1117;--surface:#1a1d27;--surface2:#242838;--border:#2e3348;--text:#e2e8f0;--text2:#94a3b8;
+--accent:#3b82f6;--accent2:#60a5fa;--green:#22c55e;--yellow:#eab308;--red:#ef4444;--orange:#f97316;--purple:#a855f7;
+--sidebar-w:220px;--radius:8px;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;}
+a{color:var(--accent2);text-decoration:none;}a:hover{text-decoration:underline;}
+/* Sidebar */
+#sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);padding:16px 0;position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:10;}
+#sidebar h1{font-size:15px;padding:8px 16px 16px;color:var(--accent2);letter-spacing:0.5px;}
+#sidebar .nav-item{display:block;padding:10px 20px;color:var(--text2);cursor:pointer;font-size:14px;border-left:3px solid transparent;transition:all .15s;}
+#sidebar .nav-item:hover{background:var(--surface2);color:var(--text);}
+#sidebar .nav-item.active{color:var(--accent2);border-left-color:var(--accent);background:var(--surface2);}
+/* Main */
+#main{margin-left:var(--sidebar-w);flex:1;padding:24px 32px;max-width:1400px;}
+.page{display:none;}.page.active{display:block;}
+h2{font-size:22px;margin-bottom:16px;font-weight:600;}
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card .label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:0.5px;}
+.card .value{font-size:28px;font-weight:700;margin-top:4px;}
+/* Charts */
+.chart-row{display:grid;grid-template-columns:1fr 2fr;gap:20px;margin-bottom:24px;}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.chart-box h3{font-size:14px;color:var(--text2);margin-bottom:12px;}
+/* Tables */
+.tbl-wrap{overflow-x:auto;margin-bottom:16px;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:var(--surface2);padding:10px 12px;text-align:left;font-weight:600;color:var(--text2);cursor:pointer;white-space:nowrap;position:sticky;top:0;border-bottom:2px solid var(--border);}
+th:hover{color:var(--text);}
+td{padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tr:hover td{background:var(--surface);}
+tr.clickable{cursor:pointer;}
+/* Badges */
+.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;text-transform:uppercase;}
+.badge-BID_NOW{background:#166534;color:#bbf7d0;}
+.badge-SAR_TARGET{background:#92400e;color:#fde68a;}
+.badge-COTS_VALIDATE{background:#1e3a8a;color:#bfdbfe;}
+.badge-CRAWL{background:#581c87;color:#e9d5ff;}
+.badge-REVIEW{background:#374151;color:#d1d5db;}
+.badge-RESEARCH{background:#581c87;color:#e9d5ff;}
+.badge-PASS{background:#374151;color:#9ca3af;}
+.badge-HIGH{background:#166534;color:#bbf7d0;}.badge-MEDIUM{background:#92400e;color:#fde68a;}.badge-LOW{background:#7f1d1d;color:#fca5a5;}
+.gauge{height:12px;border-radius:6px;background:var(--surface2);overflow:hidden;margin:4px 0;}
+.gauge-fill{height:100%;border-radius:6px;transition:width .3s;}
+.assessment-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.assessment-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.assessment-card h4{margin-bottom:8px;font-size:14px;}
+.factor-list{list-style:none;padding:0;font-size:12px;color:var(--text2);}
+.factor-list li{padding:4px 0;border-bottom:1px solid var(--border);}
+.factor-list li:last-child{border:none;}
+/* 3D Viewer */
+.viewer-3d{width:100%;height:480px;background:#0a0c14;border:1px solid var(--border);border-radius:var(--radius);position:relative;overflow:hidden;}
+.viewer-3d canvas{display:block;}
+.viewer-controls{position:absolute;bottom:12px;left:12px;display:flex;gap:8px;z-index:2;}
+.viewer-controls button{background:rgba(30,35,55,0.85);border:1px solid var(--border);color:var(--text2);padding:6px 12px;border-radius:4px;font-size:11px;cursor:pointer;}
+.viewer-controls button:hover{color:var(--text);background:var(--surface2);}
+.viewer-info{position:absolute;top:12px;left:12px;background:rgba(10,12,20,0.8);padding:8px 12px;border-radius:6px;font-size:11px;color:var(--text2);z-index:2;max-width:260px;}
+.model-preview-thumb{width:100%;height:200px;background:#0a0c14;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;position:relative;cursor:pointer;}
+.model-preview-thumb:hover{border-color:var(--accent);}
+.model-preview-thumb canvas{display:block;}
+.badge-success{background:#166534;color:#bbf7d0;}.badge-error{background:#7f1d1d;color:#fca5a5;}.badge-running{background:#1e3a8a;color:#bfdbfe;}
+/* Forms */
+.form-group{margin-bottom:16px;}
+.form-group label{display:block;font-size:13px;color:var(--text2);margin-bottom:4px;}
+input[type=text],input[type=number],input[type=file],select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:6px;font-size:13px;width:100%;max-width:400px;}
+input:focus,select:focus{outline:none;border-color:var(--accent);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:var(--accent2);}
+.btn-success{background:var(--green);color:#fff;}.btn-danger{background:var(--red);color:#fff;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border);}.btn-secondary:hover{background:var(--border);}
+.btn:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-lg{padding:14px 28px;font-size:15px;}
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px;}
+.tab{padding:10px 20px;cursor:pointer;color:var(--text2);font-size:13px;border-bottom:2px solid transparent;margin-bottom:-2px;}
+.tab:hover{color:var(--text);}.tab.active{color:var(--accent2);border-bottom-color:var(--accent);}
+.tab-content{display:none;}.tab-content.active{display:block;}
+/* Detail */
+.score-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:20px;}
+.score-card{text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px;}
+.score-card .sc-val{font-size:24px;font-weight:700;}
+.score-card .sc-label{font-size:11px;color:var(--text2);margin-top:2px;}
+.dl{display:grid;grid-template-columns:180px 1fr;gap:8px;font-size:13px;}
+.dl dt{color:var(--text2);font-weight:600;}.dl dd{color:var(--text);}
+/* Status */
+.status-msg{padding:12px 16px;border-radius:6px;font-size:13px;margin-top:8px;}
+.status-msg.info{background:#1e3a5f;border:1px solid #2563eb;color:#93c5fd;}
+.status-msg.ok{background:#14532d;border:1px solid #22c55e;color:#bbf7d0;}
+.status-msg.err{background:#450a0a;border:1px solid #ef4444;color:#fca5a5;}
+/* Pagination */
+.pager{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;}
+.pager button{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;}
+.pager button:disabled{opacity:0.3;cursor:default;}
+.pager span{color:var(--text2);}
+/* Config table */
+.cfg-table{width:100%;}
+.cfg-table td{padding:6px 8px;vertical-align:middle;}
+.cfg-table .cfg-key{font-family:monospace;font-size:12px;color:var(--accent2);width:220px;}
+.cfg-table .cfg-desc{font-size:11px;color:var(--text2);max-width:300px;white-space:normal;}
+.cfg-table input{max-width:160px;}
+/* Filter bar */
+.filter-bar{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+/* Pipeline buttons */
+.pipeline-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:16px;}
+.pipeline-card h3{margin-bottom:8px;}
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <h1>NSN Intel Suite</h1>
+  <div class="nav-item active" data-page="dashboard">Dashboard</div>
+  <div class="nav-item" data-page="forecast">Forecast</div>
+  <div class="nav-item" data-page="command-center">Command Center</div>
+  <div class="nav-item" data-page="datasheets">Datasheets</div>
+  <div class="nav-item" data-page="crawler">Crawler</div>
+  <div class="nav-item" data-page="cad">CAD Generator</div>
+  <div class="nav-item" data-page="import">Import Data</div>
+  <div class="nav-item" data-page="pipelines">Run Pipelines</div>
+  <div class="nav-item" data-page="config">Configuration</div>
+  <div class="nav-item" data-page="logs">Logs</div>
+</nav>
+
+<div id="main">
+
+<!-- ============ DASHBOARD ============ -->
+<div class="page active" id="page-dashboard">
+  <h2>Dashboard</h2>
+  <div class="cards" id="dash-cards"></div>
+  <div class="chart-row">
+    <div class="chart-box"><h3>Action Distribution</h3><canvas id="chart-actions" height="260"></canvas></div>
+    <div class="chart-box"><h3>Top 10 Opportunities</h3><canvas id="chart-top10" height="260"></canvas></div>
+  </div>
+</div>
+
+<!-- ============ FORECAST ============ -->
+<div class="page" id="page-forecast">
+  <h2>Demand Forecast</h2>
+  <div id="fc-summary" style="margin-bottom:16px;"></div>
+  <div class="filter-bar">
+    <select id="fc-chain-filter"><option value="">All Supply Chains</option></select>
+    <input type="number" id="fc-min-demand" placeholder="Min demand" style="max-width:120px;" value="1">
+    <input type="text" id="fc-search" placeholder="Search NIIN / description..." style="max-width:220px;">
+    <button class="btn btn-secondary" onclick="loadForecast()">Apply</button>
+  </div>
+  <div class="tbl-wrap"><table id="fc-table">
+    <thead><tr>
+      <th data-fcsort="niin">NIIN</th>
+      <th data-fcsort="item_description">Description</th>
+      <th data-fcsort="supply_chain">Chain</th>
+      <th>UI</th>
+      <th data-fcsort="total_demand">Total Demand</th>
+      <th data-fcsort="avg_monthly">Avg/Mo</th>
+      <th data-fcsort="peak_monthly">Peak</th>
+      <th data-fcsort="demand_months">Active Mo</th>
+      <th>Med Price</th>
+      <th>Govt Price</th>
+      <th>Action</th>
+      <th>Opp Score</th>
+    </tr></thead>
+    <tbody id="fc-body"></tbody>
+  </table></div>
+  <div class="pager" id="fc-pager"></div>
+</div>
+
+<!-- ============ COMMAND CENTER ============ -->
+<div class="page" id="page-command-center">
+  <h2>Command Center</h2>
+  <div class="filter-bar">
+    <select id="cc-action-filter"><option value="">All Actions</option>
+      <option>BID_NOW</option><option>COTS_VALIDATE</option><option>SAR_TARGET</option><option>RESEARCH</option><option>PASS</option>
+    </select>
+    <input type="text" id="cc-search" placeholder="Search NIIN..." style="max-width:200px;">
+    <button class="btn btn-secondary" onclick="loadCC()">Apply</button>
+    <span style="margin-left:16px;border-left:1px solid var(--border);padding-left:16px;">
+      <button class="btn btn-primary" style="font-size:12px;" onclick="crawlSelectedNiins()">Crawl Selected</button>
+      <span id="cc-batch-status" style="margin-left:8px;font-size:12px;"></span>
+    </span>
+  </div>
+  <div class="tbl-wrap"><table id="cc-table">
+    <thead><tr>
+      <th style="width:30px;"><input type="checkbox" id="cc-select-all" onchange="toggleAllCC(this)"></th>
+      <th data-sort="niin">NIIN</th><th data-sort="item_name">Item Name</th><th data-sort="action">Action</th>
+      <th data-sort="opportunity_score">Opp Score</th><th data-sort="cots_readiness">COTS Ready</th>
+      <th data-sort="total_demand">Demand</th><th data-sort="char_count">Chars</th>
+      <th data-sort="price_score">Price</th><th data-sort="confidence">Conf</th>
+      <th>Reason</th>
+    </tr></thead>
+    <tbody id="cc-body"></tbody>
+  </table></div>
+  <div class="pager" id="cc-pager"></div>
+</div>
+
+<!-- ============ NIIN DETAIL ============ -->
+<div class="page" id="page-niin-detail">
+  <div style="margin-bottom:12px;"><a href="#" onclick="navigate('command-center');return false;">Back to Command Center</a></div>
+  <div id="niin-header"></div>
+  <div class="score-cards" id="niin-scores"></div>
+  <div class="tabs" id="niin-tabs">
+    <div class="tab active" data-tab="summary">Summary</div>
+    <div class="tab" data-tab="forecast-detail">Forecast</div>
+    <div class="tab" data-tab="pricing">Pricing</div>
+    <div class="tab" data-tab="fingerprint">Fingerprint</div>
+    <div class="tab" data-tab="documents">Documents</div>
+    <div class="tab" data-tab="nobid">No-Bid</div>
+    <div class="tab" data-tab="flis">FLIS Refs</div>
+    <div class="tab" data-tab="publog">PUBLOG</div>
+    <div class="tab" data-tab="cots-assessment">COTS Assessment</div>
+    <div class="tab" data-tab="profit-assessment">Profit Assessment</div>
+    <div class="tab" data-tab="cad-preview">CAD Preview</div>
+    <div class="tab" data-tab="crawler-results">Crawler Results</div>
+  </div>
+  <div class="tab-content active" id="tab-summary"></div>
+  <div class="tab-content" id="tab-forecast-detail"></div>
+  <div class="tab-content" id="tab-pricing"></div>
+  <div class="tab-content" id="tab-fingerprint"></div>
+  <div class="tab-content" id="tab-documents"></div>
+  <div class="tab-content" id="tab-nobid"></div>
+  <div class="tab-content" id="tab-flis"></div>
+  <div class="tab-content" id="tab-publog"></div>
+  <div class="tab-content" id="tab-cots-assessment"></div>
+  <div class="tab-content" id="tab-profit-assessment"></div>
+  <div class="tab-content" id="tab-cad-preview"></div>
+  <div class="tab-content" id="tab-crawler-results"></div>
+</div>
+
+<!-- ============ DATASHEETS ============ -->
+<div class="page" id="page-datasheets">
+  <h2>PUBLOG Datasheets</h2>
+  <p style="color:var(--text2);margin-bottom:16px;font-size:13px;">Technical datasheets built from DLA PUBLOG data. Use filters to find high-value targets.</p>
+  <div class="filter-bar">
+    <input type="text" id="ds-search" placeholder="Search NIIN / item name..." style="max-width:220px;">
+    <input type="number" id="ds-min-demand" placeholder="Min forecast demand" style="max-width:160px;" value="0">
+    <button class="btn btn-secondary" onclick="dsPage=1;loadDatasheets()">Apply</button>
+  </div>
+  <div id="ds-status" style="margin-bottom:12px;"></div>
+  <div class="tbl-wrap"><table id="ds-table">
+    <thead><tr>
+      <th data-dssort="niin">NIIN</th><th data-dssort="fsc">FSC</th><th data-dssort="item_name">Item Name</th><th>FSC Title</th>
+      <th data-dssort="govt_price">Govt Price</th><th>UI</th><th data-dssort="char_count">Chars</th><th data-dssort="ref_count">Refs</th>
+      <th data-dssort="total_demand">Demand</th><th>Action</th><th></th>
+    </tr></thead>
+    <tbody id="ds-body"></tbody>
+  </table></div>
+  <div class="pager" id="ds-pager"></div>
+</div>
+
+<!-- ============ DATASHEET DETAIL ============ -->
+<div class="page" id="page-datasheet-detail">
+  <div style="margin-bottom:12px;">
+    <a href="#" onclick="navigate('datasheets');return false;">Back to Datasheets</a>
+    <span style="color:var(--text2);margin:0 8px;">|</span>
+    <a href="#" id="ds-detail-cc-link">View in Command Center</a>
+  </div>
+  <div id="ds-header"></div>
+  <div class="tabs" id="ds-tabs">
+    <div class="tab active" data-dstab="ds-ident">Identification</div>
+    <div class="tab" data-dstab="ds-chars">Characteristics</div>
+    <div class="tab" data-dstab="ds-mgmt">Management</div>
+    <div class="tab" data-dstab="ds-refs">References / Parts</div>
+    <div class="tab" data-dstab="ds-3dmodel">3D Model Preview</div>
+  </div>
+  <div class="tab-content active" id="ds-ident"></div>
+  <div class="tab-content" id="ds-chars"></div>
+  <div class="tab-content" id="ds-mgmt"></div>
+  <div class="tab-content" id="ds-refs"></div>
+  <div class="tab-content" id="ds-3dmodel"></div>
+</div>
+
+<!-- ============ CRAWLER ============ -->
+<div class="page" id="page-crawler">
+  <h2>Web Crawler</h2>
+  <p style="color:var(--text2);margin-bottom:16px;font-size:13px;">Crawl technical reference sites for NSN/NIIN data, datasheets, and part information.</p>
+  <div class="cards" style="grid-template-columns:1fr 1fr;">
+    <div class="card">
+      <h3 style="margin-bottom:12px;">Import Crawler Sites</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Upload an Excel file with site rankings (Rank, Site Name, URL, Primary Value, Expected ROI).</p>
+      <form id="form-crawler-sites" onsubmit="return uploadFile(event,'crawler-sites','/api/import/crawler-sites')">
+        <div class="form-group"><label>Sites File (.xlsx)</label><input type="file" name="file" accept=".xlsx" required></div>
+        <button class="btn btn-primary" type="submit">Upload Sites</button>
+      </form>
+      <div id="status-crawler-sites"></div>
+    </div>
+    <div class="card" style="border-color:var(--accent);">
+      <h3 style="margin-bottom:12px;color:var(--accent);">Run Crawler</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Crawl enabled sites searching for your top NIINs and part numbers.</p>
+      <div class="form-group"><label>Max NIINs to Crawl</label><input type="number" id="crawler-max-niins" value="50" style="max-width:100px;"></div>
+      <button class="btn btn-primary btn-lg" onclick="runCrawler()">Start Crawler</button>
+      <div id="status-crawler-run"></div>
+    </div>
+  </div>
+  <h3 style="margin-top:20px;margin-bottom:12px;">Configured Sites</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>Rank</th><th>Site Name</th><th>URL</th><th>Value</th><th>ROI</th><th>Enabled</th></tr></thead>
+    <tbody id="crawler-sites-body"></tbody>
+  </table></div>
+  <h3 style="margin-top:20px;margin-bottom:12px;">Recent Crawler Results</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>NIIN</th><th>Site</th><th>Title</th><th>Relevance</th><th>Found PNs</th><th>Snippet</th></tr></thead>
+    <tbody id="crawler-results-body"></tbody>
+  </table></div>
+  <div class="pager" id="crawler-pager"></div>
+</div>
+
+<!-- ============ CAD GENERATOR ============ -->
+<div class="page" id="page-cad">
+  <h2>Text-to-CAD Generator</h2>
+  <p style="color:var(--text2);margin-bottom:16px;font-size:13px;">Generate OpenSCAD and CadQuery models from PUBLOG characteristics data. Items with more characteristics produce better models.</p>
+  <div class="cards" style="grid-template-columns:1fr 1fr;">
+    <div class="card">
+      <h3 style="margin-bottom:12px;">Generate for Single NIIN</h3>
+      <div class="form-group"><label>NIIN</label><input type="text" id="cad-niin" placeholder="Enter NIIN..." style="max-width:200px;"></div>
+      <button class="btn btn-primary" onclick="generateCAD()">Generate CAD</button>
+      <div id="status-cad-single"></div>
+    </div>
+    <div class="card" style="border-color:var(--purple);">
+      <h3 style="margin-bottom:12px;color:var(--purple);">Batch Generate</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Generate CAD for all NIINs with sufficient characteristics.</p>
+      <div class="form-group"><label>Min Characteristics</label><input type="number" id="cad-min-chars" value="5" style="max-width:100px;"></div>
+      <div class="form-group"><label>Max Items</label><input type="number" id="cad-max-items" value="20" style="max-width:100px;"></div>
+      <button class="btn btn-primary" style="background:var(--purple);" onclick="generateCADBatch()">Batch Generate</button>
+      <div id="status-cad-batch"></div>
+    </div>
+  </div>
+  <h3 style="margin-top:20px;margin-bottom:12px;">CAD Generation Jobs</h3>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>ID</th><th>NIIN</th><th>Status</th><th>Output</th><th>Created</th></tr></thead>
+    <tbody id="cad-jobs-body"></tbody>
+  </table></div>
+  <div id="cad-preview-area" style="margin-top:20px;"></div>
+</div>
+
+<!-- ============ IMPORT ============ -->
+<div class="page" id="page-import">
+  <h2>Import Data</h2>
+  <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));">
+
+    <div class="card" style="border-color:var(--green);">
+      <h3 style="margin-bottom:12px;color:var(--green);">SRVA Forecast</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Import DIBBS SRVA demand forecast (.xls or .txt). This sets your target NIINs and demand data.</p>
+      <form id="form-forecast" onsubmit="return uploadFile(event,'forecast','/api/import/forecast')">
+        <div class="form-group"><label>File (.xls, .txt)</label><input type="file" name="file" accept=".xls,.txt,.xlsx" required></div>
+        <button class="btn btn-primary" style="background:var(--green);" type="submit">Upload & Import</button>
+      </form>
+      <div id="status-forecast"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:12px;">Pricing XLSX</h3>
+      <form id="form-pricing" onsubmit="return uploadFile(event,'pricing','/api/import/pricing')">
+        <div class="form-group"><label>File</label><input type="file" name="file" accept=".xlsx" required></div>
+        <div class="form-group"><label>Sheet Name</label><input type="text" name="sheet" value="FY26 Pricing"></div>
+        <button class="btn btn-primary" type="submit">Upload & Import</button>
+      </form>
+      <div id="status-pricing"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:12px;">FLIS Reference File</h3>
+      <form id="form-flis" onsubmit="return uploadFile(event,'flis','/api/import/flis')">
+        <div class="form-group"><label>File (XLSX or CSV)</label><input type="file" name="file" accept=".xlsx,.csv" required></div>
+        <div class="form-group"><label>Sheet Name (XLSX only)</label><input type="text" name="sheet" value="Sheet1"></div>
+        <button class="btn btn-primary" type="submit">Upload & Import</button>
+      </form>
+      <div id="status-flis"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:12px;">NoBid / NoQuote Report</h3>
+      <form id="form-nobid" onsubmit="return uploadFile(event,'nobid','/api/import/nobid')">
+        <div class="form-group"><label>File</label><input type="file" name="file" accept=".xlsx" required></div>
+        <button class="btn btn-primary" type="submit">Upload & Import</button>
+      </form>
+      <div id="status-nobid"></div>
+    </div>
+
+    <div class="card">
+      <h3 style="margin-bottom:12px;">PDFs for Fingerprinting</h3>
+      <form id="form-pdfs" onsubmit="return uploadPdfs(event)">
+        <div class="form-group"><label>PDF Files</label><input type="file" name="files" accept=".pdf" multiple required></div>
+        <button class="btn btn-primary" type="submit">Upload PDFs</button>
+      </form>
+      <div id="status-pdfs"></div>
+    </div>
+
+    <div class="card" style="border-color:var(--purple);">
+      <h3 style="margin-bottom:12px;color:var(--purple);">PUBLOG Data</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Import DLA PUBLOG data for target NIINs. Set min demand to focus on high-value items.</p>
+      <div class="form-group"><label>Min Forecast Demand (0 = all targets)</label><input type="number" id="publog-min-demand" value="10" style="max-width:120px;"></div>
+      <button class="btn btn-primary" onclick="importPubLog()">Import PUBLOG</button>
+      <div id="status-publog"></div>
+      <div id="publog-counts" style="margin-top:8px;font-size:12px;color:var(--text2);"></div>
+    </div>
+
+    <div class="card" style="border-color:var(--accent);">
+      <h3 style="margin-bottom:12px;color:var(--accent);">Crawler Sites</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Import crawler starter sites from Excel (Rank, Site Name, URL, Primary Value, Expected ROI).</p>
+      <form id="form-crawler-import" onsubmit="return uploadFile(event,'crawler-import','/api/import/crawler-sites')">
+        <div class="form-group"><label>Sites File (.xlsx)</label><input type="file" name="file" accept=".xlsx" required></div>
+        <button class="btn btn-primary" type="submit">Upload Sites</button>
+      </form>
+      <div id="status-crawler-import"></div>
+    </div>
+
+    <div class="card" style="border-color:var(--orange);">
+      <h3 style="margin-bottom:12px;color:var(--orange);">Migrate from Excel</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">One-time import of existing NSN_Filter2.xlsx into the database.</p>
+      <form id="form-migrate" onsubmit="return uploadFile(event,'migrate','/api/import/excel-migration')">
+        <div class="form-group"><label>Workbook File</label><input type="file" name="file" accept=".xlsx" required></div>
+        <button class="btn btn-primary" type="submit">Migrate</button>
+      </form>
+      <div id="status-migrate"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ PIPELINES ============ -->
+<div class="page" id="page-pipelines">
+  <h2>Run Pipelines</h2>
+  <div class="cards" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr));">
+    <div class="pipeline-card" style="border-color:var(--green);">
+      <h3>Run Decision Engine</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Score all NIINs using forecast demand + PUBLOG characteristics + pricing + competition signals. Produces BID_NOW, COTS_VALIDATE, SAR_TARGET, RESEARCH, and PASS actions.</p>
+      <button class="btn btn-primary btn-lg" style="background:var(--green);" onclick="runPipeline('decision-engine','pipe-decision')">Run Decision Engine</button>
+      <div id="pipe-decision"></div>
+    </div>
+    <div class="pipeline-card">
+      <h3>Run Fingerprint</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Extract engineering data from uploaded PDFs.</p>
+      <button class="btn btn-primary btn-lg" onclick="runPipeline('fingerprint','pipe-fingerprint')">Run Fingerprint</button>
+      <div id="pipe-fingerprint"></div>
+    </div>
+    <div class="pipeline-card" style="border-color:var(--purple);">
+      <h3>Import PUBLOG Data</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Extract PUBLOG data for target NIINs. Set min demand to down-select.</p>
+      <div class="form-group" style="margin-bottom:8px;"><label>Min Demand</label><input type="number" id="publog-min-demand-pipe" value="10" style="max-width:100px;"></div>
+      <button class="btn btn-primary btn-lg" style="background:var(--purple);" onclick="importPubLog('pipe-publog')">Import PUBLOG</button>
+      <div id="pipe-publog"></div>
+    </div>
+    <div class="pipeline-card" style="border-color:var(--accent);">
+      <h3>Run Crawler</h3>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:12px;">Crawl configured sites for target NIIN/PN data.</p>
+      <div class="form-group" style="margin-bottom:8px;"><label>Max NIINs</label><input type="number" id="crawler-max-niins-pipe" value="50" style="max-width:100px;"></div>
+      <button class="btn btn-primary btn-lg" onclick="runCrawlerPipeline()">Run Crawler</button>
+      <div id="pipe-crawler"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CONFIG ============ -->
+<div class="page" id="page-config">
+  <h2>Configuration</h2>
+  <div class="tabs" id="config-tabs">
+    <div class="tab active" data-cfg="decision">Decision Engine</div>
+    <div class="tab" data-cfg="fingerprint">Fingerprint</div>
+  </div>
+  <div id="config-body"></div>
+</div>
+
+<!-- ============ LOGS ============ -->
+<div class="page" id="page-logs">
+  <h2>Pipeline Logs</h2>
+  <button class="btn btn-secondary" onclick="loadLogs()" style="margin-bottom:12px;">Refresh</button>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>ID</th><th>Pipeline</th><th>Started</th><th>Finished</th><th>Rows</th><th>Status</th><th>Details</th></tr></thead>
+    <tbody id="logs-body"></tbody>
+  </table></div>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ── Navigation ──
+const pages = document.querySelectorAll('.page');
+const navItems = document.querySelectorAll('.nav-item[data-page]');
+let currentNiin = null;
+
+function navigate(page, extra) {
+  pages.forEach(p => p.classList.remove('active'));
+  navItems.forEach(n => n.classList.remove('active'));
+  const el = document.getElementById('page-' + page);
+  if (el) el.classList.add('active');
+  const nav = document.querySelector(`.nav-item[data-page="${page}"]`);
+  if (nav) nav.classList.add('active');
+  if (page === 'dashboard') loadDashboard();
+  if (page === 'forecast') loadForecast();
+  if (page === 'command-center') loadCC();
+  if (page === 'niin-detail' && extra) loadNiinDetail(extra);
+  if (page === 'datasheets') loadDatasheets();
+  if (page === 'datasheet-detail' && extra) loadDatasheetDetail(extra);
+  if (page === 'config') loadConfig(document.querySelector('#config-tabs .tab.active')?.dataset.cfg || 'decision');
+  if (page === 'logs') loadLogs();
+  if (page === 'import') loadPubLogCounts();
+  if (page === 'crawler') loadCrawlerPage();
+  if (page === 'cad') loadCadJobs();
+}
+navItems.forEach(n => n.addEventListener('click', () => navigate(n.dataset.page)));
+
+// ── Dashboard ──
+let actionChart = null, topChart = null;
+async function loadDashboard() {
+  const d = await (await fetch('/api/dashboard')).json();
+  document.getElementById('dash-cards').innerHTML = [
+    card('Total NIINs', d.total_niins),
+    card('BID_NOW', (d.actions.find(a=>a.action==='BID_NOW')||{count:0}).count),
+    card('Avg Score', d.avg_score),
+    card('Runs Today', d.pipelines_today),
+  ].join('');
+
+  const actCtx = document.getElementById('chart-actions');
+  if (actionChart) actionChart.destroy();
+  const colors = {'BID_NOW':'#22c55e','SAR_TARGET':'#eab308','COTS_VALIDATE':'#3b82f6','RESEARCH':'#a855f7','PASS':'#6b7280','CRAWL':'#a855f7','REVIEW':'#6b7280'};
+  actionChart = new Chart(actCtx, {type:'doughnut',data:{
+    labels: d.actions.map(a=>a.action), datasets:[{data:d.actions.map(a=>a.count),
+    backgroundColor:d.actions.map(a=>colors[a.action]||'#6b7280')}]},
+    options:{plugins:{legend:{labels:{color:'#94a3b8'}}}}});
+
+  const topCtx = document.getElementById('chart-top10');
+  if (topChart) topChart.destroy();
+  topChart = new Chart(topCtx, {type:'bar',data:{
+    labels:d.top10.map(r=>r.niin), datasets:[{label:'Opp Score',data:d.top10.map(r=>r.opportunity_score),
+    backgroundColor:d.top10.map(r=>colors[r.action]||'#6b7280')}]},
+    options:{indexAxis:'y',scales:{x:{grid:{color:'#2e3348'},ticks:{color:'#94a3b8'}},y:{grid:{display:false},ticks:{color:'#e2e8f0',font:{size:11}}}},
+    plugins:{legend:{display:false}}}});
+}
+function card(label,value){return `<div class="card"><div class="label">${label}</div><div class="value">${value}</div></div>`;}
+
+// ── Command Center ──
+let ccSort='opportunity_score', ccOrder='desc', ccPage=1;
+async function loadCC() {
+  const action = document.getElementById('cc-action-filter').value;
+  const search = document.getElementById('cc-search').value;
+  const url = `/api/command-center?action=${action}&search=${encodeURIComponent(search)}&sort=${ccSort}&order=${ccOrder}&page=${ccPage}&per_page=50`;
+  const d = await (await fetch(url)).json();
+  const body = document.getElementById('cc-body');
+  body.innerHTML = d.rows.map(r => `<tr class="clickable">
+    <td onclick="event.stopPropagation()"><input type="checkbox" class="cc-check" value="${r.niin}"></td>
+    <td onclick="navigate('niin-detail','${r.niin}')">${r.niin}</td>
+    <td onclick="navigate('niin-detail','${r.niin}')" style="white-space:normal;max-width:180px;">${esc(r.item_name||'')}</td>
+    <td><span class="badge badge-${r.action}">${r.action||'-'}</span></td>
+    <td>${fmt(r.opportunity_score)}</td>
+    <td>${fmt(r.cots_readiness)}</td>
+    <td>${(r.total_demand||0).toLocaleString()}</td>
+    <td>${r.char_count||0}</td>
+    <td>${fmt(r.price_score)}</td>
+    <td>${fmt(r.confidence)}</td>
+    <td style="white-space:normal;max-width:250px;">${esc(r.primary_reason||'')}</td>
+  </tr>`).join('');
+  document.getElementById('cc-pager').innerHTML = `
+    <button onclick="ccPage=1;loadCC()" ${ccPage<=1?'disabled':''}>First</button>
+    <button onclick="ccPage--;loadCC()" ${ccPage<=1?'disabled':''}>Prev</button>
+    <span>Page ${d.page} of ${d.pages} (${d.total} rows)</span>
+    <button onclick="ccPage++;loadCC()" ${ccPage>=d.pages?'disabled':''}>Next</button>
+    <button onclick="ccPage=${d.pages};loadCC()" ${ccPage>=d.pages?'disabled':''}>Last</button>`;
+}
+document.querySelectorAll('#cc-table th[data-sort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const s = th.dataset.sort;
+    if (ccSort === s) ccOrder = ccOrder==='desc'?'asc':'desc';
+    else { ccSort = s; ccOrder = 'desc'; }
+    ccPage = 1; loadCC();
+  });
+});
+
+function toggleAllCC(el) {
+  document.querySelectorAll('.cc-check').forEach(cb => cb.checked = el.checked);
+}
+async function crawlSelectedNiins() {
+  const checks = document.querySelectorAll('.cc-check:checked');
+  const niins = Array.from(checks).map(c => c.value);
+  if (niins.length === 0) { alert('No NIINs selected. Use checkboxes to select rows first.'); return; }
+  const el = document.getElementById('cc-batch-status');
+  el.innerHTML = `<span style="color:var(--accent);">Crawling ${niins.length} NIINs...</span>`;
+  try {
+    const resp = await fetch('/api/run/crawler-batch', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({niins})});
+    const data = await resp.json();
+    if (data.job_id) pollJob(data.job_id, el);
+  } catch(e) { el.innerHTML = '<span style="color:var(--red);">Failed</span>'; }
+}
+
+// ── NIIN Detail ──
+async function loadNiinDetail(niin) {
+  currentNiin = niin;
+  const d = await (await fetch(`/api/niin/${niin}`)).json();
+  const cc = d.command_center || {};
+  document.getElementById('niin-header').innerHTML = `
+    <h2 style="display:flex;align-items:center;gap:12px;">NIIN: ${niin}
+    ${cc.action?`<span class="badge badge-${cc.action}">${cc.action}</span>`:''}
+    </h2>
+    <p style="color:var(--text2);margin-bottom:16px;">NSN: ${cc.nsn||d.fingerprint?.nsn||'-'}</p>`;
+
+  document.getElementById('niin-scores').innerHTML = [
+    sc('Opportunity', fmt(cc.opportunity_score)),
+    sc('COTS Ready', fmt(cc.cots_readiness)),
+    sc('Demand', fmt(cc.demand_score)),
+    sc('Chars', fmt(cc.char_score)),
+    sc('Supply', fmt(cc.supply_score)),
+    sc('Price', fmt(cc.price_score)),
+    sc('Competition', fmt(cc.competition_score)),
+    sc('Confidence', fmt(cc.confidence)),
+  ].join('');
+
+  // Summary tab
+  document.getElementById('tab-summary').innerHTML = `<dl class="dl">
+    <dt>Item Name</dt><dd>${esc(cc.item_name||'-')}</dd>
+    <dt>Primary Reason</dt><dd>${esc(cc.primary_reason||'-')}</dd>
+    <dt>Next Steps</dt><dd>${esc(cc.next_steps||'-')}</dd>
+    <dt>Total Demand</dt><dd>${(cc.total_demand||0).toLocaleString()}</dd>
+    <dt>Characteristics</dt><dd>${cc.char_count||0}</dd>
+    <dt>Part Numbers</dt><dd>${cc.ref_count||0}</dd>
+    <dt>CAGE Sources</dt><dd>${cc.cage_count||0}</dd>
+    <dt>Govt Unit Price</dt><dd>${fmtPrice(cc.govt_unit_price)}</dd>
+    <dt>Criticality Code</dt><dd>${esc(cc.crit_cd||'-')}</dd>
+    <dt>DMIL Code</dt><dd>${esc(cc.dmil||'-')}</dd>
+    <dt>NoBid Score</dt><dd>${fmt(cc.nobid_score)}</dd>
+  </dl>`;
+
+  // Forecast tab
+  const fc = d.forecast;
+  if (fc) {
+    let monthlyHtml = '';
+    try {
+      const monthly = JSON.parse(fc.monthly_demand || '{}');
+      const months = Object.keys(monthly).sort();
+      if (months.length > 0) {
+        monthlyHtml = `<h4 style="margin:16px 0 8px;font-size:13px;color:var(--text2);">Monthly Demand</h4>
+          <div style="display:flex;gap:2px;align-items:flex-end;height:120px;margin-bottom:8px;">
+            ${months.map(m => {
+              const v = monthly[m];
+              const pct = fc.peak_monthly > 0 ? (v / fc.peak_monthly * 100) : 0;
+              return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;">
+                <span style="font-size:10px;color:var(--text2);">${v||''}</span>
+                <div style="width:100%;background:${v>0?'var(--accent)':'var(--surface2)'};height:${Math.max(2,pct)}%;border-radius:2px 2px 0 0;"></div>
+                <span style="font-size:9px;color:var(--text2);transform:rotate(-45deg);white-space:nowrap;margin-top:4px;">${m}</span>
+              </div>`;
+            }).join('')}
+          </div>`;
+      }
+    } catch(e) {}
+    document.getElementById('tab-forecast-detail').innerHTML = `<dl class="dl">
+      <dt>Supply Chain</dt><dd>${esc(fc.supply_chain||'-')}</dd>
+      <dt>Item Description</dt><dd>${esc(fc.item_description||'-')}</dd>
+      <dt>UI</dt><dd>${esc(fc.ui||'-')}</dd>
+      <dt>Total Demand (25 mo)</dt><dd><strong>${(fc.total_demand||0).toLocaleString()}</strong></dd>
+      <dt>Avg Monthly</dt><dd>${fmt(fc.avg_monthly)}</dd>
+      <dt>Peak Monthly</dt><dd>${fc.peak_monthly||0}</dd>
+      <dt>Active Months</dt><dd>${fc.demand_months||0} of 25</dd>
+      <dt>Forecast Period</dt><dd>${esc(fc.forecast_start||'-')} to ${esc(fc.forecast_end||'-')}</dd>
+      <dt>Source File</dt><dd>${esc(fc.source_file||'-')}</dd>
+    </dl>${monthlyHtml}`;
+  } else {
+    document.getElementById('tab-forecast-detail').innerHTML = '<p style="color:var(--text2)">No forecast data. Import SRVA forecast from the Import page.</p>';
+  }
+
+  // Pricing tab
+  const p = d.pricing;
+  document.getElementById('tab-pricing').innerHTML = p ? `<dl class="dl">
+    <dt>Median Unit Price</dt><dd>${fmtPrice(p.median_unit_price)}</dd>
+    <dt>Last Unit Price</dt><dd>${fmtPrice(p.last_unit_price)}</dd>
+    <dt>Min Price</dt><dd>${fmtPrice(p.min_unit_price)}</dd>
+    <dt>Max Price</dt><dd>${fmtPrice(p.max_unit_price)}</dd>
+    <dt>Total Awards</dt><dd>${p.total_awards}</dd>
+    <dt>Total Qty</dt><dd>${p.total_qty}</dd>
+    <dt>Last Award Date</dt><dd>${p.last_award_date||'-'}</dd>
+    <dt>Supplier Count</dt><dd>${p.supplier_count}</dd>
+    <dt>Top Supplier</dt><dd>${esc(p.top_supplier||'-')}</dd>
+    <dt>Source File</dt><dd>${esc(p.source_file||'-')}</dd>
+  </dl>` : '<p style="color:var(--text2)">No pricing data.</p>';
+
+  // Fingerprint tab
+  const fp = d.fingerprint;
+  if (fp) {
+    let fpData = {};
+    try { fpData = JSON.parse(fp.fingerprint_json); } catch(e){}
+    document.getElementById('tab-fingerprint').innerHTML = `
+      <dl class="dl">
+        <dt>Confidence</dt><dd>${fmt(fp.confidence)}</dd>
+        <dt>Top Facts</dt><dd>${esc(fp.top_facts||'-')}</dd>
+        <dt>Evidence Docs</dt><dd>${esc(fp.evidence_docs||'-')}</dd>
+        <dt>Materials</dt><dd>${(fpData.materials||[]).join(', ')||'-'}</dd>
+        <dt>Types</dt><dd>${(fpData.types||[]).join(', ')||'-'}</dd>
+        <dt>Threads</dt><dd>${(fpData.threads||[]).join(', ')||'-'}</dd>
+        <dt>Standards</dt><dd>${(fpData.standards||[]).join(', ')||'-'}</dd>
+        <dt>Pressure</dt><dd>${fpData.pressure?Object.entries(fpData.pressure).map(([k,v])=>`${k}: ${v} psi`).join('; '):'-'}</dd>
+        <dt>Temp Range (F)</dt><dd>${fpData.temp_f?`${fpData.temp_f.min||'?'} to ${fpData.temp_f.max||'?'}`:'-'}</dd>
+        <dt>MS IDs</dt><dd>${(fpData.ms_ids||[]).join(', ')||'-'}</dd>
+      </dl>`;
+  } else {
+    document.getElementById('tab-fingerprint').innerHTML = '<p style="color:var(--text2)">No fingerprint data.</p>';
+  }
+
+  // Documents tab
+  document.getElementById('tab-documents').innerHTML = d.documents.length ? `<table>
+    <thead><tr><th>Doc ID</th><th>Filename</th><th>Type</th><th>Confidence</th><th>Key Facts</th></tr></thead>
+    <tbody>${d.documents.map(doc=>`<tr><td>${doc.doc_id}</td><td>${esc(doc.filename)}</td>
+      <td>${doc.doc_type}</td><td>${fmt(doc.confidence)}</td><td style="white-space:normal;">${esc(doc.key_facts||'')}</td></tr>`).join('')}</tbody>
+  </table>` : '<p style="color:var(--text2)">No documents.</p>';
+
+  // NoBid tab
+  const nb = d.nobid;
+  document.getElementById('tab-nobid').innerHTML = nb ? `<dl class="dl">
+    <dt>NoBid Count</dt><dd>${nb.nobid_count}</dd>
+    <dt>Last Close</dt><dd>${nb.last_close||'-'}</dd>
+    <dt>Total PR Value</dt><dd>${fmtPrice(nb.total_pr_value)}</dd>
+    <dt>FSC</dt><dd>${esc(nb.fsc||'-')}</dd>
+    <dt>Nomenclature</dt><dd>${esc(nb.nomenclature||'-')}</dd>
+  </dl>` : '<p style="color:var(--text2)">No no-bid data.</p>';
+
+  // PUBLOG tab
+  fetch(`/api/niin/${niin}/datasheet`).then(r=>r.json()).then(ds => {
+    const id = ds.identification;
+    if (id || ds.characteristics.length || ds.references.length) {
+      let html = '<div style="margin-bottom:12px;"><a href="#" onclick="navigate(\'datasheet-detail\',\''+niin+'\');return false;" class="btn btn-secondary" style="font-size:12px;">Open Full Datasheet</a></div>';
+      if (id) {
+        html += `<dl class="dl">
+          <dt>Item Name</dt><dd>${esc(id.item_name||'-')}</dd>
+          <dt>FSC</dt><dd>${esc(id.fsc||'-')}</dd>
+          <dt>INC</dt><dd>${esc(id.inc||'-')}</dd>
+          <dt>SOS</dt><dd>${esc(id.sos||'-')}</dd>
+          <dt>DMIL</dt><dd>${esc(id.dmil||'-')}</dd>
+        </dl>`;
+      }
+      html += `<p style="color:var(--text2);font-size:12px;margin-top:12px;">${ds.stats.char_count} characteristics | ${ds.stats.part_numbers} part numbers | ${ds.stats.mgmt_records} management records</p>`;
+      document.getElementById('tab-publog').innerHTML = html;
+    } else {
+      document.getElementById('tab-publog').innerHTML = '<p style="color:var(--text2)">No PUBLOG data. Import PUBLOG data from the Import page.</p>';
+    }
+  }).catch(() => {
+    document.getElementById('tab-publog').innerHTML = '<p style="color:var(--text2)">Failed to load PUBLOG data.</p>';
+  });
+
+  // FLIS tab
+  document.getElementById('tab-flis').innerHTML = d.flis_refs.length ? `<table>
+    <thead><tr><th>CAGE</th><th>OEM PN</th><th>OEM Name</th><th>NSN</th><th>Source</th></tr></thead>
+    <tbody>${d.flis_refs.map(f=>`<tr><td>${esc(f.cage)}</td><td>${esc(f.oem_pn)}</td>
+      <td>${esc(f.oem_name)}</td><td>${esc(f.nsn)}</td><td>${esc(f.source_file)}</td></tr>`).join('')}</tbody>
+  </table>` : '<p style="color:var(--text2)">No FLIS references.</p>';
+
+  // COTS Assessment tab
+  loadCotsAssessment(niin);
+
+  // Profit Assessment tab
+  loadProfitAssessment(niin);
+
+  // CAD Preview tab
+  loadCadPreview(niin);
+
+  // Crawler Results tab
+  loadCrawlerResultsForNiin(niin);
+
+  // Tab switching
+  document.querySelectorAll('#niin-tabs .tab').forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll('#niin-tabs .tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('#page-niin-detail .tab-content').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById('tab-'+t.dataset.tab).classList.add('active');
+    };
+  });
+}
+function sc(label,val){return `<div class="score-card"><div class="sc-val">${val}</div><div class="sc-label">${label}</div></div>`;}
+
+// ── Import ──
+async function uploadFile(e, id, url) {
+  e.preventDefault();
+  const form = e.target;
+  const fd = new FormData(form);
+  const el = document.getElementById('status-'+id);
+  el.innerHTML = '<div class="status-msg info">Uploading...</div>';
+  try {
+    const resp = await fetch(url, {method:'POST',body:fd});
+    const data = await resp.json();
+    if (data.error) { el.innerHTML = `<div class="status-msg err">${data.error}</div>`; return false; }
+    if (data.job_id) { pollJob(data.job_id, el); }
+    else { el.innerHTML = `<div class="status-msg ok">${JSON.stringify(data)}</div>`; }
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+  return false;
+}
+
+async function uploadPdfs(e) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const el = document.getElementById('status-pdfs');
+  el.innerHTML = '<div class="status-msg info">Uploading...</div>';
+  try {
+    const resp = await fetch('/api/import/pdfs',{method:'POST',body:fd});
+    const data = await resp.json();
+    el.innerHTML = `<div class="status-msg ok">Uploaded ${data.saved} PDF(s). Go to Run Pipelines to process them.</div>`;
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+  return false;
+}
+
+// ── Pipelines ──
+async function runPipeline(name, statusId) {
+  const el = document.getElementById(statusId);
+  el.innerHTML = '<div class="status-msg info">Starting...</div>';
+  try {
+    const resp = await fetch(`/api/run/${name}`,{method:'POST'});
+    const data = await resp.json();
+    pollJob(data.job_id, el);
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+}
+
+async function runAll() {
+  const el = document.getElementById('pipe-decision');
+  el.innerHTML = '<div class="status-msg info">Running decision engine (scoring all NIINs)...</div>';
+  try {
+    const r1 = await fetch('/api/run/decision-engine',{method:'POST'});
+    const d1 = await r1.json();
+    await waitForJob(d1.job_id);
+    el.innerHTML = '<div class="status-msg ok">Decision engine complete!</div>';
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+}
+
+function pollJob(jobId, el) {
+  const iv = setInterval(async () => {
+    const resp = await fetch(`/api/pipeline-status/${jobId}`);
+    const d = await resp.json();
+    if (d.status === 'running') {
+      el.innerHTML = `<div class="status-msg info">Running... (job #${jobId})</div>`;
+    } else if (d.status === 'success') {
+      clearInterval(iv);
+      el.innerHTML = `<div class="status-msg ok">Done! Processed ${d.rows_processed} rows. ${esc(d.log_text||'')}</div>`;
+    } else {
+      clearInterval(iv);
+      el.innerHTML = `<div class="status-msg err">Error: ${esc(d.log_text||'Unknown error')}</div>`;
+    }
+  }, 2000);
+}
+
+function waitForJob(jobId) {
+  return new Promise((resolve,reject) => {
+    const iv = setInterval(async () => {
+      const resp = await fetch(`/api/pipeline-status/${jobId}`);
+      const d = await resp.json();
+      if (d.status === 'success') { clearInterval(iv); resolve(d); }
+      else if (d.status === 'error') { clearInterval(iv); reject(d.log_text); }
+    }, 2000);
+  });
+}
+
+// ── Config ──
+let currentCfgSection = 'decision';
+document.querySelectorAll('#config-tabs .tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('#config-tabs .tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    loadConfig(t.dataset.cfg);
+  });
+});
+
+async function loadConfig(section) {
+  currentCfgSection = section;
+  const rows = await (await fetch(`/api/config/${section}`)).json();
+  const body = document.getElementById('config-body');
+  body.innerHTML = `<table class="cfg-table"><tbody>
+    ${rows.map(r => `<tr>
+      <td class="cfg-key">${esc(r.key)}</td>
+      <td><input type="text" data-key="${esc(r.key)}" value="${esc(r.value)}" class="cfg-input"></td>
+      <td class="cfg-desc">${esc(r.description||'')}</td>
+    </tr>`).join('')}
+  </tbody></table>
+  <div style="margin-top:16px;display:flex;gap:8px;">
+    <button class="btn btn-primary" onclick="saveConfig()">Save Changes</button>
+    <button class="btn btn-danger" onclick="resetConfig()">Reset to Defaults</button>
+  </div>
+  <div id="config-status"></div>`;
+}
+
+async function saveConfig() {
+  const inputs = document.querySelectorAll('.cfg-input');
+  const items = Array.from(inputs).map(i => ({key:i.dataset.key, value:i.value}));
+  const resp = await fetch(`/api/config/${currentCfgSection}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(items)});
+  const d = await resp.json();
+  document.getElementById('config-status').innerHTML = `<div class="status-msg ok">Saved ${d.updated} values.</div>`;
+}
+
+async function resetConfig() {
+  await fetch(`/api/config/${currentCfgSection}/reset`,{method:'POST'});
+  loadConfig(currentCfgSection);
+  document.getElementById('config-status').innerHTML = `<div class="status-msg ok">Reset to defaults.</div>`;
+}
+
+// ── Logs ──
+async function loadLogs() {
+  const rows = await (await fetch('/api/logs')).json();
+  document.getElementById('logs-body').innerHTML = rows.map(r => `<tr>
+    <td>${r.id}</td><td>${esc(r.pipeline_name)}</td><td>${r.started_at||'-'}</td><td>${r.finished_at||'-'}</td>
+    <td>${r.rows_processed}</td>
+    <td><span class="badge badge-${r.status}">${r.status}</span></td>
+    <td style="white-space:normal;max-width:400px;font-size:11px;">${esc(r.log_text||'')}</td>
+  </tr>`).join('');
+}
+
+// ── Forecast ──
+let fcSort='total_demand', fcOrder='desc', fcPage=1;
+async function loadForecast() {
+  const chain = document.getElementById('fc-chain-filter').value;
+  const minD = document.getElementById('fc-min-demand').value || '0';
+  const search = document.getElementById('fc-search').value;
+  const url = `/api/forecast?supply_chain=${encodeURIComponent(chain)}&min_demand=${minD}&search=${encodeURIComponent(search)}&sort=${fcSort}&order=${fcOrder}&page=${fcPage}&per_page=50`;
+  const d = await (await fetch(url)).json();
+
+  // Populate supply chain filter (once)
+  const sel = document.getElementById('fc-chain-filter');
+  if (sel.options.length <= 1 && d.supply_chains) {
+    d.supply_chains.forEach(sc => {
+      const opt = document.createElement('option');
+      opt.value = sc; opt.textContent = sc;
+      sel.appendChild(opt);
+    });
+  }
+
+  // Summary cards
+  fetch('/api/forecast/summary').then(r=>r.json()).then(s => {
+    document.getElementById('fc-summary').innerHTML = `
+      <div class="cards">
+        ${card('Forecast NIINs', s.total_niins)}
+        ${card('Total Demand', s.total_demand.toLocaleString())}
+        ${card('Avg Demand/NIIN', s.avg_demand)}
+        ${card('Have Pricing', s.with_pricing)}
+        ${card('Have PUBLOG', s.with_publog)}
+      </div>`;
+  });
+
+  // Table
+  const body = document.getElementById('fc-body');
+  body.innerHTML = d.rows.map(r => `<tr class="clickable" onclick="navigate('niin-detail','${r.niin}')">
+    <td>${r.niin}</td>
+    <td style="white-space:normal;max-width:200px;">${esc(r.item_description||'')}</td>
+    <td>${esc(r.supply_chain||'')}</td>
+    <td>${esc(r.ui||'')}</td>
+    <td><strong>${(r.total_demand||0).toLocaleString()}</strong></td>
+    <td>${fmt(r.avg_monthly)}</td>
+    <td>${r.peak_monthly||0}</td>
+    <td>${r.demand_months||0}</td>
+    <td>${fmtPrice(r.median_unit_price)}</td>
+    <td>${r.govt_unit_price ? '$'+Number(r.govt_unit_price).toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
+    <td>${r.action ? `<span class="badge badge-${r.action}">${r.action}</span>` : '-'}</td>
+    <td>${fmt(r.opportunity_score)}</td>
+  </tr>`).join('');
+
+  document.getElementById('fc-pager').innerHTML = `
+    <button onclick="fcPage=1;loadForecast()" ${fcPage<=1?'disabled':''}>First</button>
+    <button onclick="fcPage--;loadForecast()" ${fcPage<=1?'disabled':''}>Prev</button>
+    <span>Page ${d.page} of ${d.pages} (${d.total} rows)</span>
+    <button onclick="fcPage++;loadForecast()" ${fcPage>=d.pages?'disabled':''}>Next</button>
+    <button onclick="fcPage=${d.pages};loadForecast()" ${fcPage>=d.pages?'disabled':''}>Last</button>`;
+}
+document.querySelectorAll('#fc-table th[data-fcsort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const s = th.dataset.fcsort;
+    if (fcSort === s) fcOrder = fcOrder==='desc'?'asc':'desc';
+    else { fcSort = s; fcOrder = 'desc'; }
+    fcPage = 1; loadForecast();
+  });
+});
+
+// ── PUBLOG Import ──
+async function importPubLog(statusId) {
+  const el = document.getElementById(statusId || 'status-publog');
+  const minDemand = document.getElementById('publog-min-demand')?.value || document.getElementById('publog-min-demand-pipe')?.value || '0';
+  el.innerHTML = `<div class="status-msg info">Starting PUBLOG import (min demand: ${minDemand}). This may take several minutes...</div>`;
+  try {
+    const resp = await fetch('/api/import/publog', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({min_demand: parseInt(minDemand) || 0})});
+    const data = await resp.json();
+    if (data.error) { el.innerHTML = `<div class="status-msg err">${data.error}</div>`; return; }
+    pollJob(data.job_id, el);
+    setTimeout(loadPubLogCounts, 5000);
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+}
+
+async function loadPubLogCounts() {
+  try {
+    const d = await (await fetch('/api/publog/status')).json();
+    const el = document.getElementById('publog-counts');
+    if (el) {
+      el.innerHTML = Object.entries(d).map(([k,v]) => `${k.replace('publog_','')}: ${v}`).join(' | ');
+    }
+  } catch(e) {}
+}
+
+// ── Datasheets ──
+let dsSort='niin', dsOrder='asc', dsPage=1;
+async function loadDatasheets() {
+  const search = (document.getElementById('ds-search')?.value || '').trim();
+  const minD = document.getElementById('ds-min-demand')?.value || '0';
+  const url = `/api/datasheet/bulk?search=${encodeURIComponent(search)}&min_demand=${minD}&sort=${dsSort}&order=${dsOrder}&page=${dsPage}&per_page=50`;
+  const d = await (await fetch(url)).json();
+  const el = document.getElementById('ds-body');
+  if (!d.rows || d.rows.length === 0) {
+    el.innerHTML = '<tr><td colspan="11" style="color:var(--text2);text-align:center;padding:24px;">No PUBLOG datasheets found. Import PUBLOG data first, or adjust filters.</td></tr>';
+    document.getElementById('ds-status').innerHTML = '';
+    document.getElementById('ds-pager').innerHTML = '';
+    return;
+  }
+  document.getElementById('ds-status').innerHTML = `<span style="font-size:12px;color:var(--text2);">${d.total} NIINs with PUBLOG data</span>`;
+  el.innerHTML = d.rows.map(r => `<tr class="clickable" onclick="navigate('datasheet-detail','${r.niin}')">
+    <td>${r.niin}</td>
+    <td>${esc(r.fsc||'')}</td>
+    <td style="white-space:normal;max-width:200px;">${esc(r.item_name||'')}</td>
+    <td style="white-space:normal;max-width:200px;">${esc(r.fsc_title||'')}</td>
+    <td>${r.govt_price ? '$'+Number(r.govt_price).toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
+    <td>${esc(r.ui||'')}</td>
+    <td>${r.char_count||0}</td>
+    <td>${r.ref_count||0}</td>
+    <td>${(r.total_demand||0).toLocaleString()}</td>
+    <td>${r.action ? `<span class="badge badge-${r.action}">${r.action}</span>` : '-'}</td>
+    <td><button class="btn btn-secondary" style="padding:4px 10px;font-size:11px;" onclick="event.stopPropagation();navigate('datasheet-detail','${r.niin}')">View</button></td>
+  </tr>`).join('');
+  document.getElementById('ds-pager').innerHTML = `
+    <button onclick="dsPage=1;loadDatasheets()" ${dsPage<=1?'disabled':''}>First</button>
+    <button onclick="dsPage--;loadDatasheets()" ${dsPage<=1?'disabled':''}>Prev</button>
+    <span>Page ${d.page} of ${d.pages} (${d.total} rows)</span>
+    <button onclick="dsPage++;loadDatasheets()" ${dsPage>=d.pages?'disabled':''}>Next</button>
+    <button onclick="dsPage=${d.pages};loadDatasheets()" ${dsPage>=d.pages?'disabled':''}>Last</button>`;
+}
+document.querySelectorAll('#ds-table th[data-dssort]').forEach(th => {
+  th.addEventListener('click', () => {
+    const s = th.dataset.dssort;
+    if (dsSort === s) dsOrder = dsOrder==='desc'?'asc':'desc';
+    else { dsSort = s; dsOrder = 'desc'; }
+    dsPage = 1; loadDatasheets();
+  });
+});
+
+async function loadDatasheetDetail(niin) {
+  let ds;
+  try {
+    ds = await (await fetch(`/api/niin/${niin}/datasheet`)).json();
+  } catch(e) {
+    document.getElementById('ds-header').innerHTML = `<div class="status-msg err">Failed to load datasheet: ${e}</div>`;
+    return;
+  }
+  if (!ds || !ds.stats) {
+    document.getElementById('ds-header').innerHTML = `<div class="status-msg err">No PUBLOG data found for NIIN ${niin}. Import PUBLOG data first.</div>`;
+    return;
+  }
+  const id = ds.identification || {};
+  const fsc = ds.fsc_info || {};
+  const inc = ds.inc_info || {};
+
+  document.getElementById('ds-detail-cc-link').onclick = function(e) { e.preventDefault(); navigate('niin-detail', niin); };
+
+  // Header with 3D preview
+  document.getElementById('ds-header').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:20px;margin-bottom:16px;">
+      <div>
+        <h2 style="margin-bottom:4px;">NIIN: ${niin}</h2>
+        <p style="color:var(--text2);margin-bottom:4px;font-size:15px;font-weight:600;">${esc(id.item_name||'Unknown Item')}</p>
+        <p style="color:var(--text2);margin-bottom:16px;font-size:13px;">
+          NSN: ${esc((id.fsc||'????')+'-'+niin.substring(0,2)+'-'+niin.substring(2,5)+'-'+niin.substring(5))} |
+          FSC: ${esc(id.fsc||'-')} ${esc(fsc.fsc_title||'')} |
+          INC: ${esc(id.inc||'-')} ${esc(inc.item_name||'')}
+        </p>
+        <div class="score-cards">
+          ${sc('Characteristics', ds.stats.char_count)}
+          ${sc('Part Numbers', ds.stats.part_numbers)}
+          ${sc('CAGE Codes', ds.stats.unique_cages)}
+          ${sc('Mgmt Records', ds.stats.mgmt_records)}
+          ${sc('DMIL', esc(id.dmil||'-'))}
+          ${sc('SOS', esc(id.sos||'-'))}
+        </div>
+      </div>
+      <div>
+        <div class="model-preview-thumb" id="ds-model-thumb" onclick="document.querySelector('#ds-tabs .tab[data-dstab=ds-3dmodel]').click();" title="Click to open 3D Model tab">
+          <div class="viewer-info" style="font-size:10px;">3D Preview — click to expand</div>
+        </div>
+        <div style="text-align:center;margin-top:6px;">
+          <button class="btn btn-secondary" style="font-size:11px;padding:4px 12px;" onclick="document.querySelector('#ds-tabs .tab[data-dstab=ds-3dmodel]').click();">Open 3D View</button>
+        </div>
+      </div>
+    </div>`;
+  // Render thumbnail 3D preview
+  renderModel3DThumb(niin, ds);
+
+  // Identification tab
+  document.getElementById('ds-ident').innerHTML = `
+    <dl class="dl">
+      <dt>NIIN</dt><dd>${niin}</dd>
+      <dt>FSC</dt><dd>${esc(id.fsc||'-')} — ${esc(fsc.fsc_title||'')}</dd>
+      <dt>FSG</dt><dd>${esc(fsc.fsg_title||'-')}</dd>
+      <dt>Item Name</dt><dd>${esc(id.item_name||'-')}</dd>
+      <dt>INC</dt><dd>${esc(id.inc||'-')} — ${esc(inc.item_name||'')}</dd>
+      <dt>INC Definition</dt><dd style="white-space:normal;">${esc(inc.definition||'-')}</dd>
+      <dt>Source of Supply</dt><dd>${esc(id.sos||'-')}</dd>
+      <dt>End Item Name</dt><dd style="white-space:normal;">${esc(id.end_item_name||'-')}</dd>
+      <dt>DMIL Code</dt><dd>${esc(id.dmil||'-')}</dd>
+      <dt>PMIC</dt><dd>${esc(id.pmic||'-')}</dd>
+      <dt>HMIC</dt><dd>${esc(id.hmic||'-')}</dd>
+      <dt>Criticality Code</dt><dd>${esc(id.crit_cd||'-')}</dd>
+      <dt>FIIG</dt><dd>${esc(id.fiig||'-')}</dd>
+      <dt>NIIN Assignment Date</dt><dd>${esc(id.niin_asgmt||'-')}</dd>
+      <dt>Cancelled NIIN</dt><dd>${esc(id.cancelled_niin||'-')}</dd>
+    </dl>`;
+
+  // Characteristics tab
+  if (ds.characteristics.length > 0) {
+    document.getElementById('ds-chars').innerHTML = `
+      <p style="color:var(--text2);font-size:12px;margin-bottom:8px;">${ds.characteristics.length} characteristic(s)</p>
+      <table><thead><tr><th style="width:60px;">MRC</th><th style="width:300px;">Requirement</th><th>Reply</th></tr></thead>
+      <tbody>${ds.characteristics.map(c => `<tr>
+        <td><code>${esc(c.mrc)}</code></td>
+        <td style="white-space:normal;">${esc(c.requirements_statement)}</td>
+        <td style="white-space:normal;">${esc(c.clear_text_reply)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } else {
+    document.getElementById('ds-chars').innerHTML = '<p style="color:var(--text2)">No characteristics data. Run PUBLOG import.</p>';
+  }
+
+  // Management tab
+  if (ds.management.length > 0) {
+    document.getElementById('ds-mgmt').innerHTML = `
+      <p style="color:var(--text2);font-size:12px;margin-bottom:8px;">${ds.management.length} management record(s)</p>
+      <table><thead><tr><th>Eff Date</th><th>MOE</th><th>AAC</th><th>SOS</th><th>UI</th><th>Unit Price</th><th>CIIC</th><th>SLC</th><th>USC</th></tr></thead>
+      <tbody>${ds.management.map(m => `<tr>
+        <td>${esc(m.effective_date)}</td><td>${esc(m.moe)}</td><td>${esc(m.aac)}</td>
+        <td>${esc(m.sos)}</td><td>${esc(m.ui)}</td>
+        <td>${m.unit_price ? '$'+Number(m.unit_price).toLocaleString(undefined,{minimumFractionDigits:2}) : '-'}</td>
+        <td>${esc(m.ciic)}</td><td>${esc(m.slc)}</td><td>${esc(m.usc)}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } else {
+    document.getElementById('ds-mgmt').innerHTML = '<p style="color:var(--text2)">No management data. Run PUBLOG import.</p>';
+  }
+
+  // References tab
+  if (ds.references.length > 0) {
+    document.getElementById('ds-refs').innerHTML = `
+      <p style="color:var(--text2);font-size:12px;margin-bottom:8px;">${ds.references.length} reference(s) across ${ds.stats.unique_cages} CAGE code(s)</p>
+      <table><thead><tr><th>CAGE</th><th>Part Number</th><th>RNCC</th><th>RNVC</th><th>DAC</th><th>Company</th><th>Location</th></tr></thead>
+      <tbody>${ds.references.map(r => `<tr>
+        <td><code>${esc(r.cage_code)}</code></td>
+        <td><strong>${esc(r.part_number)}</strong></td>
+        <td>${esc(r.rncc)}</td><td>${esc(r.rnvc)}</td><td>${esc(r.dac)}</td>
+        <td style="white-space:normal;">${esc(r.company||'')}</td>
+        <td style="white-space:normal;">${esc([r.city,r.state_province,r.country].filter(Boolean).join(', '))}</td>
+      </tr>`).join('')}</tbody></table>`;
+  } else {
+    document.getElementById('ds-refs').innerHTML = '<p style="color:var(--text2)">No reference data. Run PUBLOG import.</p>';
+  }
+
+  // 3D Model tab
+  document.getElementById('ds-3dmodel').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 300px;gap:16px;">
+      <div>
+        <div class="viewer-3d" id="ds-viewer-3d"></div>
+        <div style="margin-top:8px;display:flex;gap:8px;align-items:center;">
+          <button class="btn btn-secondary" onclick="resetModelView()">Reset View</button>
+          <button class="btn btn-secondary" onclick="toggleWireframe()">Wireframe</button>
+          <button class="btn btn-secondary" onclick="toggleAutoRotate()">Auto Rotate</button>
+          <span style="color:var(--text2);font-size:11px;margin-left:8px;">Drag to rotate | Scroll to zoom | Right-drag to pan</span>
+        </div>
+      </div>
+      <div>
+        <div class="card" id="ds-model-spec-info" style="max-height:480px;overflow-y:auto;">
+          <h4 style="margin-bottom:8px;">Model Specification</h4>
+          <p style="font-size:12px;color:var(--text2);">Loading...</p>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-primary" onclick="generateCADForNiin('${niin}')">Generate CAD Files</button>
+      <button class="btn btn-primary" style="background:#2d8a4e;" onclick="generateAIImage('${niin}')">Generate AI Image</button>
+      <button class="btn btn-secondary" onclick="generateDXFForNiin('${niin}')">Generate DXF Drawing</button>
+      <a href="/api/cad/dxf/${niin}" class="btn btn-secondary" id="dxf-download-ds-${niin}" style="display:none;">Download DXF</a>
+      <span id="cad-gen-status-ds-${niin}" style="margin-left:8px;"></span>
+    </div>
+    <div id="ai-image-preview-ds-${niin}" style="margin-top:16px;"></div>`;
+  renderModel3DFull(niin, ds);
+
+  // Tab switching for datasheet
+  document.querySelectorAll('#ds-tabs .tab').forEach(t => {
+    t.onclick = () => {
+      document.querySelectorAll('#ds-tabs .tab').forEach(x=>x.classList.remove('active'));
+      document.querySelectorAll('#page-datasheet-detail .tab-content').forEach(x=>x.classList.remove('active'));
+      t.classList.add('active');
+      document.getElementById(t.dataset.dstab).classList.add('active');
+    };
+  });
+}
+
+// ── COTS Assessment ──
+async function loadCotsAssessment(niin) {
+  const el = document.getElementById('tab-cots-assessment');
+  try {
+    const d = await (await fetch(`/api/cots-assessment/${niin}`)).json();
+    const gaugeColor = d.cots_readiness >= 70 ? 'var(--green)' : d.cots_readiness >= 40 ? 'var(--yellow)' : 'var(--red)';
+    el.innerHTML = `
+      <div class="assessment-grid">
+        <div class="assessment-card">
+          <h4>COTS Readiness Score</h4>
+          <div style="font-size:36px;font-weight:700;color:${gaugeColor};">${Math.round(d.cots_readiness)}</div>
+          <div class="gauge"><div class="gauge-fill" style="width:${d.cots_readiness}%;background:${gaugeColor};"></div></div>
+          <p style="font-size:12px;color:var(--text2);margin-top:8px;">
+            ${d.char_count} characteristics | ${d.ref_count} part numbers | ${d.cage_count} CAGE sources
+          </p>
+        </div>
+        <div class="assessment-card">
+          <h4>Restrictions</h4>
+          ${d.restrictions.flags.length > 0
+            ? `<ul class="factor-list">${d.restrictions.flags.map(f=>`<li style="color:var(--red);">${esc(f)}</li>`).join('')}</ul>`
+            : '<p style="color:var(--green);font-size:13px;">No restrictions detected</p>'}
+          <dl class="dl" style="margin-top:12px;">
+            <dt>DMIL</dt><dd>${esc(d.restrictions.dmil||'None')}</dd>
+            <dt>Criticality</dt><dd>${esc(d.restrictions.crit_cd||'None')}</dd>
+          </dl>
+        </div>
+        <div class="assessment-card">
+          <h4>SAR Viability: <span class="badge badge-${d.sar_rating}">${d.sar_rating}</span></h4>
+          <ul class="factor-list">${d.sar_factors.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>
+        </div>
+        <div class="assessment-card">
+          <h4>Drop-In Replacement: <span class="badge badge-${d.dropin_rating}">${d.dropin_rating}</span></h4>
+          <ul class="factor-list">${d.dropin_factors.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>
+        </div>
+      </div>
+      <h4 style="margin:16px 0 8px;">Known Suppliers (${d.suppliers.length})</h4>
+      ${d.suppliers.length ? `<table><thead><tr><th>CAGE</th><th>Company</th><th>Location</th><th>Part Numbers</th></tr></thead>
+        <tbody>${d.suppliers.map(s=>`<tr>
+          <td><code>${esc(s.cage)}</code></td>
+          <td>${esc(s.company||'')}</td>
+          <td>${esc([s.city,s.state,s.country].filter(Boolean).join(', '))}</td>
+          <td style="white-space:normal;">${s.parts.map(p=>esc(p)).join(', ')}</td>
+        </tr>`).join('')}</tbody></table>` : '<p style="color:var(--text2)">No suppliers found in PUBLOG data.</p>'}
+      ${d.characteristics.length ? `
+        <h4 style="margin:16px 0 8px;">Characteristics (${d.characteristics.length})</h4>
+        <table><thead><tr><th style="width:60px;">MRC</th><th>Requirement</th><th>Reply</th></tr></thead>
+        <tbody>${d.characteristics.slice(0,30).map(c=>`<tr>
+          <td><code>${esc(c.mrc)}</code></td>
+          <td style="white-space:normal;">${esc(c.requirements_statement)}</td>
+          <td style="white-space:normal;">${esc(c.clear_text_reply)}</td>
+        </tr>`).join('')}</tbody></table>
+        ${d.characteristics.length > 30 ? `<p style="color:var(--text2);font-size:12px;">Showing 30 of ${d.characteristics.length} characteristics</p>` : ''}
+      ` : ''}
+    `;
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--text2)">No COTS assessment data available. Import PUBLOG data first.</p>';
+  }
+}
+
+// ── Profit Assessment ──
+async function loadProfitAssessment(niin) {
+  const el = document.getElementById('tab-profit-assessment');
+  try {
+    const d = await (await fetch(`/api/niin/${niin}/profit-assessment`)).json();
+    if (!d.exists) {
+      el.innerHTML = `
+        <div style="text-align:center;padding:40px;">
+          <p style="color:var(--text2);margin-bottom:16px;">No profit assessment generated yet for this NIIN.</p>
+          <button class="btn btn-primary" style="background:#2d8a4e;" onclick="generateProfitAssessment('${niin}')">
+            Generate Profit Assessment
+          </button>
+          <p style="color:var(--text2);font-size:11px;margin-top:8px;">Uses AI to find commercial alternatives and calculate ROI potential</p>
+        </div>`;
+      return;
+    }
+
+    const alts = d.cots_alternatives || [];
+    const margin = d.potential_margin;
+    const roi = d.roi_percent;
+    const govtPrice = d.govt_unit_price;
+    const bestCots = d.best_cots_price;
+    const annual = d.annual_demand || 0;
+    const annualRev = d.annual_revenue_potential;
+
+    const marginColor = margin > 0 ? 'var(--green)' : margin < 0 ? 'var(--red)' : 'var(--text2)';
+    const roiColor = roi > 100 ? 'var(--green)' : roi > 30 ? 'var(--yellow)' : roi > 0 ? 'var(--accent)' : 'var(--red)';
+
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="margin:0;">Profit Assessment: ${esc(d.item_name||niin)}</h3>
+        <button class="btn btn-secondary" onclick="generateProfitAssessment('${niin}')">Refresh Assessment</button>
+      </div>
+
+      <div class="score-cards" style="margin-bottom:20px;">
+        <div class="score-card">
+          <div class="sc-val">${govtPrice ? '$'+govtPrice.toFixed(2) : 'N/A'}</div>
+          <div class="sc-label">Govt Unit Price</div>
+        </div>
+        <div class="score-card">
+          <div class="sc-val">${bestCots ? '$'+bestCots.toFixed(2) : 'N/A'}</div>
+          <div class="sc-label">Best COTS Price</div>
+        </div>
+        <div class="score-card">
+          <div class="sc-val" style="color:${marginColor}">${margin!=null ? (margin>0?'+':'')+margin.toFixed(2) : 'N/A'}</div>
+          <div class="sc-label">Margin / Unit</div>
+        </div>
+        <div class="score-card">
+          <div class="sc-val" style="color:${roiColor}">${roi!=null ? roi.toFixed(0)+'%' : 'N/A'}</div>
+          <div class="sc-label">ROI</div>
+        </div>
+        <div class="score-card">
+          <div class="sc-val">${annual > 0 ? annual.toLocaleString() : 'N/A'}</div>
+          <div class="sc-label">Annual Demand</div>
+        </div>
+        <div class="score-card">
+          <div class="sc-val" style="color:var(--green);">${annualRev!=null && annualRev>0 ? '$'+annualRev.toLocaleString(undefined,{maximumFractionDigits:0}) : 'N/A'}</div>
+          <div class="sc-label">Annual Revenue Potential</div>
+        </div>
+      </div>
+
+      ${d.assessment_notes ? `<div style="background:var(--surface2);padding:12px;border-radius:var(--radius);margin-bottom:16px;font-size:13px;">
+        ${d.assessment_notes.split(' | ').map(n => '<div style="margin:4px 0;">'+esc(n)+'</div>').join('')}
+      </div>` : ''}
+
+      <h4 style="margin-bottom:8px;">Current Part vs. COTS Alternatives</h4>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>Product</th>
+              <th>Manufacturer</th>
+              <th>Price</th>
+              <th>Match</th>
+              <th>Specs</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:var(--surface2);">
+              <td><span class="badge badge-BID_NOW">GOVT</span></td>
+              <td><strong>${esc(d.item_name||'')}</strong></td>
+              <td>DoD/DLA</td>
+              <td><strong>${govtPrice ? '$'+govtPrice.toFixed(2) : 'N/A'}</strong></td>
+              <td>-</td>
+              <td style="white-space:normal;font-size:12px;">NSN/NIIN specification</td>
+              <td>-</td>
+            </tr>
+            ${alts.map((a,i) => `
+            <tr>
+              <td><span class="badge badge-COTS_VALIDATE">COTS ${i+1}</span></td>
+              <td style="white-space:normal;">${esc(a.name||'')}</td>
+              <td>${esc(a.manufacturer||'')}</td>
+              <td>${a.estimated_price ? '$'+a.estimated_price.toFixed(2) : 'N/A'}</td>
+              <td><span class="badge badge-${a.match_quality==='high'?'HIGH':a.match_quality==='medium'?'MEDIUM':'LOW'}">${esc(a.match_quality||'')}</span></td>
+              <td style="white-space:normal;font-size:12px;max-width:250px;">${esc(a.specs||'')}</td>
+              <td>${a.url ? '<a href="'+esc(a.url)+'" target="_blank" rel="noopener" style="font-size:12px;">View</a>' : '-'}</td>
+            </tr>
+            `).join('')}
+            ${alts.length===0 ? '<tr><td colspan="7" style="color:var(--text2);text-align:center;">No COTS alternatives found. Click Refresh to try again.</td></tr>' : ''}
+          </tbody>
+        </table>
+      </div>
+      <p style="color:var(--text2);font-size:11px;margin-top:8px;">Generated: ${d.generated_at || '-'} | Prices are AI estimates — verify with actual quotes</p>
+    `;
+  } catch(e) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:40px;">
+        <p style="color:var(--text2);margin-bottom:16px;">No profit assessment yet.</p>
+        <button class="btn btn-primary" style="background:#2d8a4e;" onclick="generateProfitAssessment('${niin}')">
+          Generate Profit Assessment
+        </button>
+      </div>`;
+  }
+}
+
+async function generateProfitAssessment(niin) {
+  const el = document.getElementById('tab-profit-assessment');
+  el.innerHTML = `
+    <div style="padding:40px;text-align:center;">
+      <div style="color:var(--accent);font-size:14px;margin-bottom:8px;">Generating Profit Assessment...</div>
+      <div style="color:var(--text2);font-size:12px;">AI is searching for COTS alternatives. This may take 15-30 seconds.</div>
+    </div>`;
+  try {
+    const resp = await fetch(`/api/niin/${niin}/profit-assessment`, {method:'POST'});
+    const data = await resp.json();
+    if (data.job_id) {
+      const pollIv = setInterval(async () => {
+        try {
+          const pr = await fetch(`/api/pipeline-status/${data.job_id}`);
+          const pd = await pr.json();
+          if (pd.status === 'success') {
+            clearInterval(pollIv);
+            loadProfitAssessment(niin);
+          } else if (pd.status === 'error') {
+            clearInterval(pollIv);
+            el.innerHTML = `<div style="padding:20px;"><p style="color:var(--red);">Error: ${esc(pd.log_text||'Unknown')}</p>
+              <button class="btn btn-secondary" onclick="generateProfitAssessment('${niin}')" style="margin-top:12px;">Retry</button></div>`;
+          }
+        } catch(e2) { clearInterval(pollIv); }
+      }, 2500);
+    }
+  } catch(e) {
+    el.innerHTML = `<p style="color:var(--red);">Failed to start profit assessment.</p>`;
+  }
+}
+
+// ── CAD Preview ──
+async function loadCadPreview(niin) {
+  const el = document.getElementById('tab-cad-preview');
+  try {
+    const d = await (await fetch(`/api/cad/preview/${niin}`)).json();
+    if (!d.spec || !d.spec.dimensions || Object.keys(d.spec.dimensions).length === 0) {
+      el.innerHTML = '<p style="color:var(--text2)">Insufficient dimensional data for CAD generation. Requires PUBLOG characteristics with dimensional values.</p>';
+      return;
+    }
+    el.innerHTML = `
+      <div class="assessment-grid">
+        <div class="assessment-card">
+          <h4>Part Specification</h4>
+          <dl class="dl">
+            <dt>Part Name</dt><dd>${esc(d.spec.part_name)}</dd>
+            <dt>Item</dt><dd>${esc(d.spec.item_name)}</dd>
+            <dt>Units</dt><dd>${esc(d.spec.units)}</dd>
+            <dt>Chars Used</dt><dd>${d.spec.characteristics_count}</dd>
+          </dl>
+          <h4 style="margin-top:12px;">Dimensions</h4>
+          <dl class="dl">${Object.entries(d.spec.dimensions).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${v} ${esc(d.spec.units)}</dd>`).join('')}</dl>
+          <h4 style="margin-top:12px;">Features</h4>
+          <ul class="factor-list">${d.spec.features.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>
+          <h4 style="margin-top:12px;">Materials</h4>
+          <ul class="factor-list">${d.spec.materials.map(m=>`<li>${esc(m)}</li>`).join('')}</ul>
+        </div>
+        <div class="assessment-card">
+          <h4>OpenSCAD Code</h4>
+          <pre style="background:var(--bg);padding:12px;border-radius:6px;font-size:11px;overflow-x:auto;max-height:400px;color:var(--text);">${esc(d.openscad)}</pre>
+          <button class="btn btn-secondary" style="margin-top:8px;" onclick="copyToClipboard(\`${esc(d.openscad).replace(/`/g,'\\`')}\`)">Copy OpenSCAD</button>
+        </div>
+      </div>
+      <div class="assessment-card" style="margin-top:16px;">
+        <h4>CadQuery Code</h4>
+        <pre style="background:var(--bg);padding:12px;border-radius:6px;font-size:11px;overflow-x:auto;max-height:300px;color:var(--text);">${esc(d.cadquery)}</pre>
+        <button class="btn btn-secondary" style="margin-top:8px;" onclick="copyToClipboard(\`${esc(d.cadquery).replace(/`/g,'\\`')}\`)">Copy CadQuery</button>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-primary" onclick="generateCADForNiin('${niin}')">Generate CAD Files</button>
+        <button class="btn btn-primary" style="background:#2d8a4e;" onclick="generateAIImage('${niin}')">Generate AI Image</button>
+        <button class="btn btn-secondary" onclick="generateDXFForNiin('${niin}')">Generate DXF Drawing</button>
+        <a href="/api/cad/dxf/${niin}" class="btn btn-secondary" id="dxf-download-niin-${niin}" style="display:none;">Download DXF</a>
+        <span id="cad-gen-status-${niin}" style="margin-left:8px;"></span>
+      </div>
+      <div id="ai-image-preview-${niin}" style="margin-top:16px;"></div>`;
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--text2)">Failed to generate CAD preview.</p>';
+  }
+}
+
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).catch(() => {});
+}
+
+async function generateCADForNiin(niin) {
+  const el = document.getElementById('cad-gen-status-' + niin);
+  if (el) el.innerHTML = '<span style="color:var(--accent);">Generating...</span>';
+  try {
+    const resp = await fetch('/api/run/cad-generate', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({niin: niin})});
+    const data = await resp.json();
+    if (data.job_id) {
+      pollJob(data.job_id, {set innerHTML(v){if(el) el.innerHTML = v;}});
+    }
+  } catch(e) { if(el) el.innerHTML = '<span style="color:var(--red);">Failed</span>'; }
+}
+
+async function generateAIImage(niin) {
+  const previewEl = document.getElementById('ai-image-preview-' + niin)
+                 || document.getElementById('ai-image-preview-ds-' + niin);
+  const statusEl = document.getElementById('cad-gen-status-' + niin)
+                || document.getElementById('cad-gen-status-ds-' + niin);
+  if (previewEl) previewEl.innerHTML = `
+    <div style="padding:40px;text-align:center;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);">
+      <div style="color:var(--accent);font-size:14px;margin-bottom:8px;">Generating AI Image...</div>
+      <div style="color:var(--text2);font-size:12px;">This may take 15-30 seconds</div>
+    </div>`;
+  try {
+    const resp = await fetch(`/api/niin/${niin}/generate-image`, {method:'POST'});
+    const data = await resp.json();
+    if (data.job_id) {
+      const pollIv = setInterval(async () => {
+        try {
+          const pr = await fetch(`/api/pipeline-status/${data.job_id}`);
+          const pd = await pr.json();
+          if (pd.status === 'success') {
+            clearInterval(pollIv);
+            if (previewEl) previewEl.innerHTML = `
+              <img src="/api/cad/image/${niin}?t=${Date.now()}"
+                   style="max-width:100%;max-height:480px;border:1px solid var(--border);border-radius:var(--radius);"
+                   alt="AI Generated Image of NIIN ${niin}">
+              <p style="font-size:11px;color:var(--text2);margin-top:4px;">AI-generated image (Google Imagen 4)</p>`;
+            if (statusEl) statusEl.innerHTML = '<span style="color:var(--green);">Image generated!</span>';
+          } else if (pd.status === 'error') {
+            clearInterval(pollIv);
+            if (previewEl) previewEl.innerHTML = '';
+            if (statusEl) statusEl.innerHTML = `<span style="color:var(--red);">Error: ${esc(pd.log_text||'Unknown error')}</span>`;
+          }
+        } catch(e2) { clearInterval(pollIv); }
+      }, 2500);
+    }
+  } catch(e) {
+    if (previewEl) previewEl.innerHTML = '';
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--red);">Failed to start image generation</span>';
+  }
+}
+
+async function generateDXFForNiin(niin) {
+  const statusEl = document.getElementById('cad-gen-status-' + niin)
+                || document.getElementById('cad-gen-status-ds-' + niin);
+  if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent);">Generating DXF...</span>';
+  try {
+    const resp = await fetch(`/api/niin/${niin}/generate-dxf`, {method:'POST'});
+    const data = await resp.json();
+    if (data.job_id) {
+      const pollIv = setInterval(async () => {
+        try {
+          const pr = await fetch(`/api/pipeline-status/${data.job_id}`);
+          const pd = await pr.json();
+          if (pd.status === 'success') {
+            clearInterval(pollIv);
+            if (statusEl) statusEl.innerHTML = '<span style="color:var(--green);">DXF generated!</span>';
+            const dlLink = document.getElementById('dxf-download-ds-' + niin)
+                        || document.getElementById('dxf-download-niin-' + niin);
+            if (dlLink) dlLink.style.display = 'inline-flex';
+          } else if (pd.status === 'error') {
+            clearInterval(pollIv);
+            if (statusEl) statusEl.innerHTML = `<span style="color:var(--red);">Error: ${esc(pd.log_text||'')}</span>`;
+          }
+        } catch(e2) { clearInterval(pollIv); }
+      }, 2000);
+    }
+  } catch(e) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--red);">Failed</span>';
+  }
+}
+
+// ── Crawler Results (NIIN tab) ──
+async function loadCrawlerResultsForNiin(niin) {
+  const el = document.getElementById('tab-crawler-results');
+  try {
+    const [d, files, extracts] = await Promise.all([
+      (await fetch(`/api/crawler/results?niin=${niin}`)).json(),
+      (await fetch(`/api/crawler/files?niin=${niin}`)).json(),
+      (await fetch(`/api/crawler/extracts?niin=${niin}`)).json(),
+    ]);
+
+    let html = `<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" onclick="crawlSingleNiin('${niin}')">Crawl This NIIN</button>
+      <button class="btn btn-secondary" onclick="extractAllForNiin('${niin}')">Extract All Files</button>
+      <span id="crawler-niin-status-${niin}" style="margin-left:8px;"></span>
+    </div>`;
+
+    html += `<div class="score-cards" style="margin-bottom:16px;">
+      <div class="card"><div class="label">Crawler Results</div><div class="value">${d.total}</div></div>
+      <div class="card"><div class="label">Downloaded Files</div><div class="value">${files.length}</div></div>
+      <div class="card"><div class="label">PDFs</div><div class="value">${files.filter(f=>f.file_type==='pdf'||f.file_type==='datasheet').length}</div></div>
+      <div class="card"><div class="label">Extracted Segments</div><div class="value">${extracts.length}</div></div>
+    </div>`;
+
+    if (d.rows.length > 0) {
+      html += `<h4 style="margin-bottom:8px;">Crawler Results</h4>
+        <table><thead><tr><th>Site</th><th>Title</th><th>Relevance</th><th>Found PNs</th><th>Snippet</th></tr></thead>
+        <tbody>${d.rows.map(r=>`<tr>
+          <td>${esc(r.site_name)}</td>
+          <td style="white-space:normal;max-width:200px;">${esc(r.page_title||'')}</td>
+          <td>${fmt(r.relevance_score)}</td>
+          <td>${esc(r.found_pns||'')}</td>
+          <td style="white-space:normal;max-width:300px;font-size:11px;">${esc(r.snippet||'')}</td>
+        </tr>`).join('')}</tbody></table>`;
+    }
+
+    if (files.length > 0) {
+      html += `<h4 style="margin:16px 0 8px;">Downloaded Files</h4>
+        <table><thead><tr><th>Filename</th><th>Type</th><th>Size</th><th>Source</th><th>Actions</th></tr></thead>
+        <tbody>${files.map(f=>`<tr>
+          <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(f.filename)}">${esc(f.filename)}</td>
+          <td><span class="badge badge-info">${esc(f.file_type)}</span></td>
+          <td>${(f.file_size/1024).toFixed(1)} KB</td>
+          <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><a href="${esc(f.source_url)}" target="_blank" title="${esc(f.source_url)}">Source</a></td>
+          <td style="white-space:nowrap;">
+            <a href="/api/crawler/files/${f.id}/download" class="btn btn-secondary" style="padding:2px 8px;font-size:11px;">Download</a>
+            <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="extractFile(${f.id})">Extract</button>
+          </td>
+        </tr>`).join('')}</tbody></table>`;
+    }
+
+    if (extracts.length > 0) {
+      html += `<h4 style="margin:16px 0 8px;">Extracted Data (${extracts.length} segments)</h4>
+        <table><thead><tr><th>File</th><th>Type</th><th>NIINs Found</th><th>PNs Found</th><th>Content Preview</th></tr></thead>
+        <tbody>${extracts.map(e=>`<tr>
+          <td style="max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(e.filename||'')}</td>
+          <td><span class="badge">${esc(e.extract_type)}</span></td>
+          <td style="font-size:11px;">${esc(e.niin_mentions||'-')}</td>
+          <td style="white-space:normal;max-width:200px;font-size:11px;">${esc((e.pn_mentions||'-').substring(0,100))}</td>
+          <td style="white-space:normal;max-width:300px;font-size:11px;">${esc((e.content||'').substring(0,200))}</td>
+        </tr>`).join('')}</tbody></table>`;
+    }
+
+    if (d.rows.length === 0 && files.length === 0) {
+      html += '<p style="color:var(--text2);margin-top:12px;">No crawler results yet. Click "Crawl This NIIN" to start.</p>';
+    }
+
+    el.innerHTML = html;
+  } catch(e) {
+    el.innerHTML = '<p style="color:var(--text2)">Failed to load crawler results.</p>';
+  }
+}
+
+async function crawlSingleNiin(niin) {
+  const el = document.getElementById('crawler-niin-status-' + niin);
+  if (el) el.innerHTML = '<span style="color:var(--accent);">Starting crawler...</span>';
+  try {
+    const resp = await fetch('/api/run/crawler-niin', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({niin})});
+    const data = await resp.json();
+    if (data.job_id) pollJob(data.job_id, el);
+  } catch(e) { if(el) el.innerHTML = '<span style="color:var(--red);">Failed</span>'; }
+}
+
+async function extractFile(fileId) {
+  try {
+    const resp = await fetch(`/api/crawler/files/${fileId}/extract`, {method:'POST'});
+    const data = await resp.json();
+    alert('Extraction started (job #' + data.job_id + ')');
+  } catch(e) { alert('Extraction failed'); }
+}
+
+async function extractAllForNiin(niin) {
+  const el = document.getElementById('crawler-niin-status-' + niin);
+  if (el) el.innerHTML = '<span style="color:var(--accent);">Extracting all files...</span>';
+  try {
+    const resp = await fetch('/api/crawler/extract-all', {method:'POST',
+      headers:{'Content-Type':'application/json'}, body: JSON.stringify({niin})});
+    const data = await resp.json();
+    if (data.job_id) pollJob(data.job_id, el);
+  } catch(e) { if(el) el.innerHTML = '<span style="color:var(--red);">Failed</span>'; }
+}
+
+// ── Crawler Page ──
+async function loadCrawlerPage() {
+  // Load sites
+  try {
+    const sites = await (await fetch('/api/crawler/sites')).json();
+    document.getElementById('crawler-sites-body').innerHTML = sites.length ? sites.map(s => `<tr>
+      <td>${s.rank}</td><td>${esc(s.site_name)}</td>
+      <td><a href="${esc(s.url)}" target="_blank">${esc(s.url)}</a></td>
+      <td style="white-space:normal;max-width:200px;">${esc(s.primary_value||'')}</td>
+      <td>${esc(s.expected_roi||'')}</td>
+      <td><button class="btn btn-secondary" style="padding:4px 8px;font-size:11px;" onclick="toggleCrawlerSite(${s.id})">${s.enabled?'Enabled':'Disabled'}</button></td>
+    </tr>`).join('') : '<tr><td colspan="6" style="color:var(--text2);text-align:center;">No sites configured. Upload a sites file.</td></tr>';
+  } catch(e) {}
+
+  // Load recent results
+  try {
+    const d = await (await fetch('/api/crawler/results?per_page=20')).json();
+    document.getElementById('crawler-results-body').innerHTML = d.rows.length ? d.rows.map(r => `<tr>
+      <td>${r.niin}</td><td>${esc(r.site_name)}</td>
+      <td style="white-space:normal;max-width:200px;">${esc(r.page_title||'')}</td>
+      <td>${fmt(r.relevance_score)}</td>
+      <td>${esc(r.found_pns||'')}</td>
+      <td style="white-space:normal;max-width:300px;font-size:11px;">${esc(r.snippet||'')}</td>
+    </tr>`).join('') : '<tr><td colspan="6" style="color:var(--text2);text-align:center;">No results yet. Run the crawler.</td></tr>';
+  } catch(e) {}
+}
+
+async function toggleCrawlerSite(id) {
+  await fetch(`/api/crawler/sites/${id}/toggle`, {method:'POST'});
+  loadCrawlerPage();
+}
+
+async function runCrawler() {
+  const maxNiins = document.getElementById('crawler-max-niins').value || '50';
+  const el = document.getElementById('status-crawler-run');
+  el.innerHTML = '<div class="status-msg info">Starting crawler...</div>';
+  try {
+    const resp = await fetch('/api/run/crawler', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({max_niins: parseInt(maxNiins)})});
+    const data = await resp.json();
+    pollJob(data.job_id, el);
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+}
+
+async function runCrawlerPipeline() {
+  const maxNiins = document.getElementById('crawler-max-niins-pipe')?.value || '50';
+  const el = document.getElementById('pipe-crawler');
+  el.innerHTML = '<div class="status-msg info">Starting crawler...</div>';
+  try {
+    const resp = await fetch('/api/run/crawler', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({max_niins: parseInt(maxNiins)})});
+    const data = await resp.json();
+    pollJob(data.job_id, el);
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+}
+
+// ── CAD Generator Page ──
+async function loadCadJobs() {
+  try {
+    const jobs = await (await fetch('/api/cad/jobs')).json();
+    document.getElementById('cad-jobs-body').innerHTML = jobs.length ? jobs.map(j => `<tr>
+      <td>${j.id}</td><td>${j.niin}</td>
+      <td><span class="badge badge-${j.status === 'completed' ? 'success' : 'running'}">${j.status}</span></td>
+      <td style="font-size:11px;">${esc(j.output_dir||'')}</td>
+      <td>${j.created_at||'-'}</td>
+    </tr>`).join('') : '<tr><td colspan="5" style="color:var(--text2);text-align:center;">No CAD jobs yet.</td></tr>';
+  } catch(e) {}
+}
+
+async function generateCAD() {
+  const niin = document.getElementById('cad-niin').value.trim();
+  if (!niin) return;
+  const el = document.getElementById('status-cad-single');
+  el.innerHTML = '<div class="status-msg info">Generating CAD...</div>';
+  try {
+    const resp = await fetch('/api/run/cad-generate', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({niin})});
+    const data = await resp.json();
+    pollJob(data.job_id, el);
+    setTimeout(loadCadJobs, 3000);
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+}
+
+async function generateCADBatch() {
+  const minChars = document.getElementById('cad-min-chars').value || '5';
+  const maxItems = document.getElementById('cad-max-items').value || '20';
+  const el = document.getElementById('status-cad-batch');
+  el.innerHTML = '<div class="status-msg info">Starting batch CAD generation...</div>';
+  try {
+    const resp = await fetch('/api/run/cad-generate', {method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({min_chars: parseInt(minChars), max_items: parseInt(maxItems)})});
+    const data = await resp.json();
+    pollJob(data.job_id, el);
+    setTimeout(loadCadJobs, 5000);
+  } catch(err) { el.innerHTML = `<div class="status-msg err">${err}</div>`; }
+}
+
+// ── 3D Model Rendering ──
+let dsScene, dsCamera, dsRenderer, dsControls, dsMeshes = [], dsAnimId = null;
+let thumbScene, thumbCamera, thumbRenderer, thumbAnimId = null;
+
+function parseSpecFromDatasheet(ds) {
+  // Parse characteristics into dimensions and features, then classify part type (v2 engine)
+  const chars = ds.characteristics || [];
+  const rawDims = {};
+  const features = [];
+  const materials = [];
+  const id = ds.identification || {};
+
+  for (const c of chars) {
+    const stmt = (c.requirements_statement || '').trim();
+    const reply = (c.clear_text_reply || '').trim();
+    if (!reply) continue;
+    const combined = (stmt + ' ' + reply).toLowerCase();
+
+    const dimMatch = combined.match(/(\d+\.?\d*)\s*(mm|in|inch|inches|cm|")/);
+    if (dimMatch) {
+      let val = parseFloat(dimMatch[1]);
+      const unit = dimMatch[2].replace('"','in').replace('inches','in').replace('inch','in');
+      if (unit === 'in') val *= 25.4;
+      else if (unit === 'cm') val *= 10;
+      const dimName = stmt.toLowerCase().replace(/[^a-z0-9_]/g, '_').substring(0, 30) || `dim_${c.mrc}`;
+      rawDims[dimName] = Math.round(val * 100) / 100;
+    }
+
+    for (const kw of ['bore', 'thread', 'flange', 'seal', 'port', 'groove', 'chamfer', 'radius', 'hole', 'slot', 'o-ring', 'bolt']) {
+      if (combined.includes(kw)) { features.push(`${kw.charAt(0).toUpperCase()+kw.slice(1)} (${stmt})`); break; }
+    }
+
+    for (const kw of ['stainless', 'steel', 'aluminum', 'brass', 'bronze', 'titanium', 'inconel', 'copper', 'rubber', 'teflon', 'ptfe', 'nylon']) {
+      if (combined.includes(kw)) { materials.push(reply); break; }
+    }
+  }
+
+  // Classify part type
+  const nameLo = (id.item_name || '').toLowerCase();
+  const featLo = features.map(f => f.toLowerCase()).join(' ');
+  const dimKeys = Object.keys(rawDims).join(' ').toLowerCase();
+  let partType = 'cylinder';
+  if (nameLo.includes('flange') || featLo.includes('flange') || dimKeys.includes('bolt_circle') || dimKeys.includes('bolt_hole') || dimKeys.includes('flange')) {
+    partType = 'flange';
+  } else if (['block','plate','bracket','mount','bar','panel'].some(k => nameLo.includes(k)) ||
+             ['rectangular','block','plate'].some(k => featLo.includes(k)) ||
+             (dimKeys.includes('length') && dimKeys.includes('width') && dimKeys.includes('height'))) {
+    partType = 'block';
+  }
+
+  // Build typed dimensions
+  let dimensions;
+  if (partType === 'flange') {
+    let flangeOd = 120;
+    for (const [k,v] of Object.entries(rawDims)) {
+      if (/flange.*od|flange.*diam|flange.*outside/.test(k)) { flangeOd = v; break; }
+      if (/od|outside|outer|diameter/.test(k) && v > flangeOd) flangeOd = v;
+    }
+    let bore = 0;
+    for (const [k,v] of Object.entries(rawDims)) {
+      if (/bore|inside|inner|^id/.test(k)) { bore = v; break; }
+    }
+    dimensions = {
+      flange_od: flangeOd,
+      flange_thickness: Math.round(flangeOd * 0.12 * 10) / 10,
+      bolt_circle_diameter: Math.round(flangeOd * 0.75 * 10) / 10,
+      bolt_hole_qty: 4,
+      bolt_hole_diameter: Math.round(flangeOd * 0.08 * 10) / 10,
+      center_bore: bore || Math.round(flangeOd * 0.33 * 10) / 10,
+    };
+  } else if (partType === 'block') {
+    let L = 100, W = 60, H = 30;
+    for (const [k,v] of Object.entries(rawDims)) {
+      if (/length|long/.test(k)) L = v;
+      else if (/width|wide/.test(k)) W = v;
+      else if (/height|thick|depth/.test(k)) H = v;
+    }
+    dimensions = { length: L, width: W, height: H, hole_qty: 2, hole_diameter: 8, hole_spacing: Math.round(L * 0.5) };
+  } else {
+    // Cylinder fallback
+    let od = 50, len = 100, bore = 0;
+    for (const [k,v] of Object.entries(rawDims)) {
+      if (/od|outside|outer|diam/.test(k)) od = Math.max(od, v);
+      else if (/length|long|height|body/.test(k)) len = v;
+      else if (/bore|inside|inner|^id/.test(k)) bore = v;
+    }
+    if (features.some(f => f.toLowerCase().includes('flange'))) {
+      dimensions = { flange_od: Math.round(od * 1.5), flange_thickness: Math.round(len * 0.15), bolt_circle_diameter: Math.round(od * 1.12), bolt_hole_qty: 4, bolt_hole_diameter: Math.round(od * 0.08), center_bore: bore || Math.round(od * 0.33) };
+      partType = 'flange';
+    } else {
+      dimensions = { flange_od: od, flange_thickness: len, center_bore: bore, bolt_hole_qty: 0 };
+      partType = 'flange'; // render as simple cylinder via flange path
+    }
+  }
+
+  return {
+    part_name: `NIIN_${ds.niin}`,
+    item_name: id.item_name || 'Unknown',
+    niin: ds.niin,
+    units: 'mm',
+    part_type: partType,
+    dimensions: dimensions,
+    raw_dimensions: rawDims,
+    features: features.length > 0 ? features : [id.item_name || 'Part'],
+    materials: materials.length > 0 ? materials : ['Not specified'],
+    char_count: chars.length,
+  };
+}
+
+function buildGeometry(spec) {
+  // V2 geometry engine — uses proper CSG-style rendering with LatheGeometry for annular shapes
+  const dims = spec.dimensions;
+  const partType = spec.part_type || 'flange';
+  const features = spec.features.map(f => f.toLowerCase());
+  const hasThread = features.some(f => f.includes('thread'));
+  const hasGroove = features.some(f => f.includes('groove'));
+
+  const group = new THREE.Group();
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x6699cc, roughness: 0.35, metalness: 0.7 });
+  const boreMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, side: THREE.BackSide, roughness: 0.8 });
+  const holeMat = new THREE.MeshStandardMaterial({ color: 0x111122, side: THREE.BackSide, roughness: 0.9 });
+  const rfMat = new THREE.MeshStandardMaterial({ color: 0x7799bb, roughness: 0.3, metalness: 0.8 });
+  const wireMat = new THREE.MeshBasicMaterial({ color: 0x66aaff, wireframe: true, transparent: true, opacity: 0.15 });
+  const threadMat = new THREE.MeshStandardMaterial({ color: 0x88aacc, roughness: 0.5, metalness: 0.5 });
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x3366aa, transparent: true, opacity: 0.4 });
+
+  let maxExtent = 1;
+
+  // ── Flange-like geometry ──
+  if (dims.flange_od !== undefined && dims.flange_thickness !== undefined) {
+    const flangeOd = dims.flange_od;
+    const flangeThk = dims.flange_thickness;
+    const bore = dims.center_bore || 0;
+    const bcd = dims.bolt_circle_diameter || flangeOd * 0.75;
+    const boltQty = dims.bolt_hole_qty || 0;
+    const boltDia = dims.bolt_hole_diameter || flangeOd * 0.08;
+    const rfD = dims.raised_face_diameter;
+    const rfH = dims.raised_face_height;
+    maxExtent = Math.max(flangeOd, flangeThk, 1);
+    const s = 4 / maxExtent; // normalize to ~4 units wide
+
+    // Main flange disc (use LatheGeometry for proper annular cross-section if bored)
+    const segs = 64;
+    if (bore > 0) {
+      // Annular ring via LatheGeometry (revolution of rectangular cross-section)
+      const ir = bore / 2 * s;
+      const or_ = flangeOd / 2 * s;
+      const h = flangeThk * s;
+      const pts = [
+        new THREE.Vector2(ir, 0),
+        new THREE.Vector2(or_, 0),
+        new THREE.Vector2(or_, h),
+        new THREE.Vector2(ir, h),
+      ];
+      const latheGeo = new THREE.LatheGeometry(pts, segs);
+      const flangeMesh = new THREE.Mesh(latheGeo, bodyMat);
+      group.add(flangeMesh);
+      // Top annular face
+      const topRing = new THREE.Mesh(new THREE.RingGeometry(ir, or_, segs),
+        new THREE.MeshStandardMaterial({ color: 0x6699cc, roughness: 0.35, metalness: 0.7, side: THREE.DoubleSide }));
+      topRing.rotation.x = -Math.PI / 2;
+      topRing.position.y = h;
+      group.add(topRing);
+      // Bottom annular face
+      const botRing = new THREE.Mesh(new THREE.RingGeometry(ir, or_, segs),
+        new THREE.MeshStandardMaterial({ color: 0x5588aa, roughness: 0.4, metalness: 0.6, side: THREE.DoubleSide }));
+      botRing.rotation.x = Math.PI / 2;
+      group.add(botRing);
+      // Inner bore wall (dark cylinder)
+      const boreGeo = new THREE.CylinderGeometry(ir * 0.99, ir * 0.99, h * 1.01, segs, 1, true);
+      group.add(new THREE.Mesh(boreGeo, boreMat));
+      // position bore
+      group.children[group.children.length-1].position.y = h / 2;
+    } else {
+      // Solid disc
+      const cylGeo = new THREE.CylinderGeometry(flangeOd / 2 * s, flangeOd / 2 * s, flangeThk * s, segs);
+      const cylMesh = new THREE.Mesh(cylGeo, bodyMat);
+      cylMesh.position.y = flangeThk / 2 * s;
+      group.add(cylMesh);
+    }
+
+    // Bolt holes
+    if (boltQty > 0 && bcd > 0) {
+      const boltR = boltDia / 2 * s;
+      const bcdR = bcd / 2 * s;
+      const h = flangeThk * s;
+      for (let i = 0; i < boltQty; i++) {
+        const angle = (2 * Math.PI * i) / boltQty;
+        const x = Math.cos(angle) * bcdR;
+        const z = Math.sin(angle) * bcdR;
+        // Dark cylinder to simulate hole
+        const holeGeo = new THREE.CylinderGeometry(boltR, boltR, h * 1.2, 24);
+        const holeMesh = new THREE.Mesh(holeGeo, holeMat);
+        holeMesh.position.set(x, h / 2, z);
+        group.add(holeMesh);
+        // Ring around hole on top face
+        const ringGeo = new THREE.RingGeometry(boltR * 0.95, boltR * 1.5, 24);
+        const ringMat2 = new THREE.MeshStandardMaterial({ color: 0x4477aa, roughness: 0.4, metalness: 0.6, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeo, ringMat2);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(x, h + 0.002, z);
+        group.add(ring);
+      }
+    }
+
+    // Raised face
+    if (rfD && rfH) {
+      const h = flangeThk * s;
+      const rfGeo = new THREE.CylinderGeometry(rfD / 2 * s, rfD / 2 * s, rfH * s, segs);
+      const rfMesh = new THREE.Mesh(rfGeo, rfMat);
+      rfMesh.position.y = h + (rfH * s) / 2;
+      group.add(rfMesh);
+    }
+
+    // Wireframe overlay of outer body
+    const wireGeo = new THREE.CylinderGeometry(flangeOd / 2 * s, flangeOd / 2 * s, flangeThk * s, segs);
+    const wireM = new THREE.Mesh(wireGeo, wireMat);
+    wireM.position.y = flangeThk / 2 * s;
+    wireM.visible = false;
+    wireM.userData.isWireframe = true;
+    group.add(wireM);
+
+    // Thread ridges on bore
+    if (hasThread && bore > 0) {
+      const ir = bore / 2 * s;
+      const h = flangeThk * s;
+      const ridges = Math.min(12, Math.max(4, Math.floor(flangeThk / 3)));
+      for (let i = 0; i < ridges; i++) {
+        const y = (i + 0.5) / ridges * h;
+        const rGeo = new THREE.TorusGeometry(ir * 1.01, 0.01 * maxExtent * s, 8, segs);
+        const rMesh = new THREE.Mesh(rGeo, threadMat);
+        rMesh.position.y = y;
+        rMesh.rotation.x = Math.PI / 2;
+        group.add(rMesh);
+      }
+    }
+
+    // Center group vertically
+    const off = -flangeThk / 2 * s;
+    group.children.forEach(c => { c.position.y += off; });
+
+    return { group, bodyMat, wireMat, metadata: { od: flangeOd, length: flangeThk, boreD: bore, normScale: s, maxSize: maxExtent, partType: 'flange' } };
+  }
+
+  // ── Block-like geometry ──
+  if (dims.length !== undefined && dims.width !== undefined && dims.height !== undefined) {
+    const L = dims.length, W = dims.width, H = dims.height;
+    const holeQty = dims.hole_qty || 0;
+    const holeDia = dims.hole_diameter || 8;
+    const spacing = dims.hole_spacing || L * 0.5;
+    maxExtent = Math.max(L, W, H, 1);
+    const s = 4 / maxExtent;
+
+    // Block body
+    const boxGeo = new THREE.BoxGeometry(L * s, H * s, W * s);
+    const boxMesh = new THREE.Mesh(boxGeo, bodyMat);
+    boxMesh.position.y = H / 2 * s;
+    group.add(boxMesh);
+
+    // Edge lines for definition
+    const edgesGeo = new THREE.EdgesGeometry(boxGeo);
+    const linesMesh = new THREE.LineSegments(edgesGeo, edgeMat);
+    linesMesh.position.y = H / 2 * s;
+    group.add(linesMesh);
+
+    // Through holes
+    if (holeQty > 0) {
+      const holeR = holeDia / 2 * s;
+      for (let i = 0; i < holeQty; i++) {
+        let x;
+        if (holeQty <= 1) {
+          x = 0;
+        } else {
+          x = (-spacing / 2 + i * (spacing / Math.max(holeQty - 1, 1))) * s;
+        }
+        // Dark cylinder through block
+        const holeGeo = new THREE.CylinderGeometry(holeR, holeR, H * s * 1.2, 24);
+        const holeMesh = new THREE.Mesh(holeGeo, holeMat);
+        holeMesh.position.set(x, H / 2 * s, 0);
+        group.add(holeMesh);
+        // Ring on top face
+        const ringGeo = new THREE.RingGeometry(holeR * 0.95, holeR * 1.4, 24);
+        const ringMat2 = new THREE.MeshStandardMaterial({ color: 0x4477aa, roughness: 0.4, metalness: 0.6, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeo, ringMat2);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.set(x, H * s + 0.002, 0);
+        group.add(ring);
+        // Ring on bottom face
+        const ring2 = ring.clone();
+        ring2.rotation.x = Math.PI / 2;
+        ring2.position.set(x, -0.002, 0);
+        group.add(ring2);
+      }
+    }
+
+    // Wireframe overlay
+    const wireGeo2 = new THREE.BoxGeometry(L * s, H * s, W * s);
+    const wireM2 = new THREE.Mesh(wireGeo2, wireMat);
+    wireM2.position.y = H / 2 * s;
+    wireM2.visible = false;
+    wireM2.userData.isWireframe = true;
+    group.add(wireM2);
+
+    // Center vertically
+    const off = -H / 2 * s;
+    group.children.forEach(c => { c.position.y += off; });
+
+    return { group, bodyMat, wireMat, metadata: { od: L, length: H, boreD: 0, normScale: s, maxSize: maxExtent, partType: 'block' } };
+  }
+
+  // ── Fallback: simple cylinder ──
+  const r = 1.5, h = 3;
+  const cylGeo = new THREE.CylinderGeometry(r, r, h, 48);
+  group.add(new THREE.Mesh(cylGeo, bodyMat));
+  return { group, bodyMat, wireMat, metadata: { od: 50, length: 100, boreD: 0, normScale: 1, maxSize: 100, partType: 'unknown' } };
+}
+
+function createScene(container, width, height) {
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0c0e18);
+
+  const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 1000);
+  camera.position.set(6, 5, 6);
+  camera.lookAt(0, 0, 0);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(width, height);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.physicallyCorrectLights = true;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  container.appendChild(renderer.domElement);
+
+  // Improved lighting for metallic/standard materials
+  const ambient = new THREE.AmbientLight(0x445566, 0.5);
+  scene.add(ambient);
+  const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+  keyLight.position.set(6, 10, 5);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0x8899bb, 0.4);
+  fillLight.position.set(-5, 3, -4);
+  scene.add(fillLight);
+  const rimLight = new THREE.DirectionalLight(0x4488cc, 0.3);
+  rimLight.position.set(0, -2, 6);
+  scene.add(rimLight);
+  // Hemisphere for natural environment feel
+  const hemiLight = new THREE.HemisphereLight(0x6688aa, 0x222233, 0.3);
+  scene.add(hemiLight);
+
+  // Grid
+  const gridHelper = new THREE.GridHelper(10, 20, 0x1a2040, 0x111830);
+  scene.add(gridHelper);
+
+  // Axes
+  const axes = new THREE.AxesHelper(2);
+  scene.add(axes);
+
+  return { scene, camera, renderer };
+}
+
+function renderModel3DThumb(niin, ds) {
+  const container = document.getElementById('ds-model-thumb');
+  if (!container || !THREE) return;
+  // Clear old
+  if (thumbAnimId) cancelAnimationFrame(thumbAnimId);
+  const oldCanvas = container.querySelector('canvas');
+  if (oldCanvas) oldCanvas.remove();
+
+  const spec = parseSpecFromDatasheet(ds);
+  const { scene, camera, renderer } = createScene(container, 278, 180);
+  thumbScene = scene; thumbCamera = camera; thumbRenderer = renderer;
+
+  const { group } = buildGeometry(spec);
+  scene.add(group);
+  camera.position.set(4, 3, 4);
+  camera.lookAt(0, 0, 0);
+
+  function animateThumb() {
+    thumbAnimId = requestAnimationFrame(animateThumb);
+    group.rotation.y += 0.005;
+    renderer.render(scene, camera);
+  }
+  animateThumb();
+}
+
+function renderModel3DFull(niin, ds) {
+  const container = document.getElementById('ds-viewer-3d');
+  if (!container || !THREE) return;
+  // Clear old
+  if (dsAnimId) cancelAnimationFrame(dsAnimId);
+  while (container.firstChild) container.removeChild(container.firstChild);
+  dsMeshes = [];
+
+  const spec = parseSpecFromDatasheet(ds);
+  const { scene, camera, renderer } = createScene(container, container.clientWidth, 480);
+  dsScene = scene; dsCamera = camera; dsRenderer = renderer;
+
+  // Orbit controls
+  try {
+    dsControls = new THREE.OrbitControls(camera, renderer.domElement);
+    dsControls.enableDamping = true;
+    dsControls.dampingFactor = 0.08;
+    dsControls.autoRotate = false;
+    dsControls.autoRotateSpeed = 1.5;
+  } catch(e) {
+    // OrbitControls may not be available
+    dsControls = null;
+  }
+
+  const { group, bodyMat, wireMat, metadata } = buildGeometry(spec);
+  scene.add(group);
+  dsMeshes = group.children;
+
+  // Fill spec info panel
+  const specInfo = document.getElementById('ds-model-spec-info');
+  if (specInfo) {
+    const pt = metadata.partType || spec.part_type || 'unknown';
+    const ptBadge = pt === 'flange' ? '<span class="badge badge-info">Flange</span>'
+                  : pt === 'block' ? '<span class="badge badge-warning">Block</span>'
+                  : '<span class="badge badge-secondary">Cylinder</span>';
+    specInfo.innerHTML = `
+      <h4 style="margin-bottom:8px;">Model Specification</h4>
+      <dl class="dl" style="font-size:12px;">
+        <dt>Item</dt><dd style="white-space:normal;">${esc(spec.item_name)}</dd>
+        <dt>Geometry</dt><dd>${ptBadge}</dd>
+        <dt>Chars Used</dt><dd>${spec.char_count}</dd>
+      </dl>
+      <h4 style="margin-top:12px;margin-bottom:4px;">Typed Dimensions</h4>
+      <dl class="dl" style="font-size:11px;">
+        ${Object.entries(spec.dimensions).map(([k,v]) => `<dt style="font-size:10px;">${esc(k.replace(/_/g,' '))}</dt><dd>${v}${typeof v==='number'?' mm':''}</dd>`).join('')}
+      </dl>
+      ${Object.keys(spec.raw_dimensions||{}).length ? `
+      <h4 style="margin-top:12px;margin-bottom:4px;">Raw Extracted Dims</h4>
+      <dl class="dl" style="font-size:10px;opacity:0.7;">
+        ${Object.entries(spec.raw_dimensions).map(([k,v]) => `<dt style="font-size:9px;">${esc(k)}</dt><dd>${v} mm</dd>`).join('')}
+      </dl>` : ''}
+      <h4 style="margin-top:12px;margin-bottom:4px;">Features</h4>
+      <ul class="factor-list" style="font-size:11px;">${spec.features.map(f => `<li>${esc(f)}</li>`).join('')}</ul>
+      <h4 style="margin-top:12px;margin-bottom:4px;">Materials</h4>
+      <ul class="factor-list" style="font-size:11px;">${spec.materials.map(m => `<li>${esc(m)}</li>`).join('')}</ul>
+    `;
+  }
+
+  function animateFull() {
+    dsAnimId = requestAnimationFrame(animateFull);
+    if (dsControls) dsControls.update();
+    renderer.render(scene, camera);
+  }
+  animateFull();
+
+  // Handle resize
+  const resizeObs = new ResizeObserver(() => {
+    const w = container.clientWidth, h = 480;
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    renderer.setSize(w, h);
+  });
+  resizeObs.observe(container);
+}
+
+function resetModelView() {
+  if (dsCamera) {
+    dsCamera.position.set(5, 4, 5);
+    dsCamera.lookAt(0, 0, 0);
+    if (dsControls) dsControls.reset();
+  }
+}
+
+function toggleWireframe() {
+  if (!dsMeshes) return;
+  for (const m of dsMeshes) {
+    if (m.userData && m.userData.isWireframe) {
+      m.visible = !m.visible;
+    }
+  }
+}
+
+function toggleAutoRotate() {
+  if (dsControls) dsControls.autoRotate = !dsControls.autoRotate;
+}
+
+// ── Helpers ──
+function fmt(v){return v!=null?Math.round(v*10)/10:'-';}
+function fmtPrice(v){return v!=null?'$'+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}):'-';}
+function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+// ── Init ──
+loadDashboard();
+</script>
+</body>
+</html>

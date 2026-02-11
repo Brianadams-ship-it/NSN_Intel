@@ -1,0 +1,49 @@
+{
+  "annual_demand": 268,
+  "annual_revenue_potential": 3167.76,
+  "assessment_notes": "Potential margin of $11.82 per unit | Strong demand (268 units/year) supports investment",
+  "best_cots_price": 45.0,
+  "best_cots_source": "BW Controls",
+  "cots_alternatives": [
+    {
+      "estimated_price": 85.0,
+      "manufacturer": "Swagelok",
+      "match_quality": "high",
+      "name": "Swagelok SS-SS2 Needle Valve, Angle Pattern, 316 Stainless Steel, 1/4 in. Swagelok Tube Fitting",
+      "specs": "Angle Pattern, Needle Valve, 1/4 in. Swagelok Tube Fitting (First End), 1/4 in. Swagelok Tube Fitting (Second End), 316 Stainless Steel, 3000 psi",
+      "url": "https://www.swagelok.com/en/product/Needle-Valves/SS-SS2"
+    },
+    {
+      "estimated_price": 60.0,
+      "manufacturer": "Parker Hannifin",
+      "match_quality": "medium",
+      "name": "Parker Hannifin Needle Valve, Angle Body, 1/4 in. NPT x 1/4 in. NPT",
+      "specs": "Angle Body, Needle Valve, 1/4 in. NPT Male (First End), 1/4 in. NPT Male (Second End), Stainless Steel, 3000 psi",
+      "url": "https://www.parker.com/"
+    },
+    {
+      "estimated_price": 45.0,
+      "manufacturer": "BW Controls",
+      "match_quality": "medium",
+      "name": "BW Controls 1/4\" MNPT x 1/4\" FNPT Angle Needle Valve, 303 Stainless Steel, 3000 PSI",
+      "specs": "Angle Body, Needle Valve, 1/4\" MNPT (First End), 1/4\" FNPT (Second End), 303 Stainless Steel, 3000 PSI",
+      "url": "https://www.automationdirect.com/adc/shopping/catalog/process_control_-a-_instrumentation/instrumentation_valves_and_manifolds/instrumentation_valves_-a-_needle_valves/nva-ss-04m-04f"
+    },
+    {
+      "estimated_price": 75.0,
+      "manufacturer": "Hoke",
+      "match_quality": "medium",
+      "name": "Hoke 2200 Series Forged Body Needle Valve, Angle Pattern, 1/4 in. NPT",
+      "specs": "Angle Pattern, Needle Valve, 1/4 in. NPT Male (First End), 1/4 in. NPT Female (Second End), 316 Stainless Steel, 5000 psi",
+      "url": "https://www.emerson.com/en-us/catalog/hoke"
+    }
+  ],
+  "exists": true,
+  "generated_at": "2026-02-11 01:31:42",
+  "govt_unit_price": 56.82,
+  "id": 1,
+  "item_name": "VALVE,ANGLE",
+  "niin": "003907813",
+  "potential_margin": 11.82,
+  "roi_percent": 26.266666666666666
+}
